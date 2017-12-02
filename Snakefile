@@ -114,11 +114,14 @@ rule bowtie2_build:
         expand("{idx_path}/{{basename}}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], num=[1,2,3,4]),
         expand("{idx_path}/{{basename}}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], num=[1,2])
     params:
-        idx_path = config["tophat2"]["bowtie2-index-path"]
+        idx_path = config["tophat2"]["bowtie2-index-path"],
+        prefix = config["combinedgenome"]["experimental_prefix"]
     log: "logs/bowtie2_build.log"
-    shell: """
-        (bowtie2-build {input.fasta} {params.idx_path}/{wildcards.basename}) &> {log}
-        """
+    run:
+        if sisamples:
+            shell("(bowtie2-build {input.fasta} {params.idx_path}/{wildcards.basename}) &> {log}")
+        else:
+            shell("(sed -e 's/>/>{params.prefix}/g' {input.fasta} > .{params.prefix}.fa; bowtie2-build .{params.prefix}.fa {params.idx_path}/{wildcards.basename}; rm .{params.prefix}.fa) &> {log}")
 
 rule align:
     input:
