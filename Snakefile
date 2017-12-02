@@ -12,10 +12,13 @@ sipassing = {k:v for (k,v) in PASSING.items() if v["spikein"] == "y"}
 
 controlgroups = [g for g in config["comparisons"]["libsizenorm"]["controls"] if g in PASSING]
 conditiongroups = [g for g in config["comparisons"]["libsizenorm"]["conditions"] if g in PASSING]
-controlgroups_si = [g for g in config["comparisons"]["spikenorm"]["controls"] if g in sipassing]
-conditiongroups_si = [g for g in config["comparisons"]["spikenorm"]["conditions"] if g in sipassing]
+if sipassing:
+    controlgroups_si = [g for g in config["comparisons"]["spikenorm"]["controls"] if g in sipassing]
+    conditiongroups_si = [g for g in config["comparisons"]["spikenorm"]["conditions"] if g in sipassing]
 
-CATEGORIES = ["genic", "intragenic", "intergenic", "antisense", "convergent", "divergent"]
+# CATEGORIES = ["genic", "intragenic", "intergenic", "antisense", "convergent", "divergent"]
+COUNTTYPES = ["counts", "sicounts"] if sisamples else ["counts"]
+#NORMS = ["libsizenorm", "spikenorm"] if sisamples else ["libsizenorm"]
 
 localrules:
     all,
@@ -24,10 +27,12 @@ rule all:
     input:
         #FastQC
         expand("qual_ctrl/fastqc/raw/{sample}", sample=SAMPLES),
-        # expand("qual_ctrl/fastqc/cleaned/{sample}/{sample}-clean_fastqc.zip", sample=SAMPLES),
+        expand("qual_ctrl/fastqc/cleaned/{sample}/{sample}-clean_fastqc.zip", sample=SAMPLES),
         #alignment
-        # expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES),
+        expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES),
         #coverage
+        expand("coverage/counts/{sample}-netseq-{counttype}-5end-plmin.bedgraph", sample=SAMPLES, counttype=COUNTTYPES),
+#       expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         # expand("coverage/{norm}/bw/{sample}-tss-{norm}-{strand}.bw", norm=["spikenorm","libsizenorm", "counts", "sicounts"], sample=SAMPLES, strand=["SENSE","ANTISENSE","plus","minus"]),
         #datavis
         # #quality control
@@ -59,30 +64,18 @@ rule fastqc_raw:
         (fastqc -o {output} --noextract -t {threads} {input}) &>> {log}
         """
 
-#in this order: remove adapter, remove 3' molecular barcode, do NextSeq quality trimming
-#reads shorter than 18 are thrown out, as the first 6 bases are the molecular barcode and 12-mer is around the theoretical minimum length to map uniquely to the combined Sc+Sp genome (~26 Mb)
-rule remove_adapter:
+#reads shorter than 17 are thrown out, as the first 6 bases are the molecular barcode and 11-mer is around the theoretical minimum length to map uniquely to the Sc genome (~12Mb)
+rule remove_adapter_and_qual_trim:
     input:
         lambda wildcards: SAMPLES[wildcards.sample]["fastq"]
     output:
-        temp("fastq/cleaned/{sample}-noadapter.fastq.gz")
-    params:
-        adapter = config["cutadapt"]["adapter"],
-    log: "logs/remove_adapter/remove_adapter-{sample}.log"
-    shell: """
-        (cutadapt -a {params.adapter} -m 24 -o {output} {input}) &> {log}
-        """
-
-rule remove_3p_barcode_and_qual_trim:
-    input:
-        "fastq/cleaned/{sample}-noadapter.fastq.gz"
-    output:
         temp("fastq/cleaned/{sample}-trim.fastq")
     params:
+        adapter = config["cutadapt"]["adapter"],
         trim_qual = config["cutadapt"]["trim_qual"]
-    log: "logs/remove_3p_bc_and_trim/cutadapt-{sample}.log"
+    log: "logs/remove_adapter/remove_adapter-{sample}.log"
     shell: """
-        (cutadapt -u -6 --nextseq-trim={params.trim_qual} -m 18 -o {output} {input}) &> {log}
+        (cutadapt --cut=-1 --trim-n -a {params.adapter} --nextseq-trim={params.trim_qual} -m 17 --length-tag 'length=' -o {output} {input}) &> {log}
         """
 
 rule remove_molec_barcode:
@@ -112,124 +105,117 @@ rule fastqc_cleaned:
         (fastqc -o qual_ctrl/fastqc/cleaned/{wildcards.sample} --noextract -t {threads} {input}) &>> {log}
         """
 
-#align to combined genome with Tophat2, WITHOUT reference transcriptome (i.e., the -G gff)
+#align to combined genome with Tophat2 (single genome only if no samples have spike-ins), WITHOUT reference transcriptome (i.e., the -G gff)
 #(because we don't always have a reference gff and it doesn't make much difference)
 rule bowtie2_build:
     input:
-        fasta = config["combinedgenome"]["fasta"]
+        fasta = config["combinedgenome"]["fasta"] if sisamples else config["genome"]["fasta"]
     output:
-        expand("../genome/bowtie2_indexes/{basename}.{num}.bt2", basename=config["combinedgenome"]["name"], num=[1,2,3,4]),
-        expand("../genome/bowtie2_indexes/{basename}.rev.{num}.bt2", basename=config["combinedgenome"]["name"], num=[1,2])
+        expand("{idx_path}/{{basename}}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], num=[1,2,3,4]),
+        expand("{idx_path}/{{basename}}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], num=[1,2])
     params:
-        name = config["combinedgenome"]["name"]
+        idx_path = config["tophat2"]["bowtie2-index-path"]
     log: "logs/bowtie2_build.log"
     shell: """
-        (bowtie2-build {input.fasta} ../genome/bowtie2_indexes/{params.name}) &> {log}
+        (bowtie2-build {input.fasta} {params.idx_path}/{wildcards.basename}) &> {log}
         """
 
-# rule align:
-#     input:
-#         expand("../genome/bowtie2_indexes/{basename}.{num}.bt2", basename=config["combinedgenome"]["name"], num = [1,2,3,4]),
-#         expand("../genome/bowtie2_indexes/{basename}.rev.{num}.bt2", basename=config["combinedgenome"]["name"], num=[1,2]),
-#         fastq = "fastq/cleaned/{sample}-clean.fastq.gz"
-#     output:
-#         "alignment/{sample}/accepted_hits.bam"
-#     params:
-#         basename = config["combinedgenome"]["name"],
-#         read_mismatches = config["tophat2"]["read-mismatches"],
-#         read_gap_length = config["tophat2"]["read-gap-length"],
-#         read_edit_dist = config["tophat2"]["read-edit-dist"],
-#         min_anchor_length = config["tophat2"]["min-anchor-length"],
-#         splice_mismatches = config["tophat2"]["splice-mismatches"],
-#         min_intron_length = config["tophat2"]["min-intron-length"],
-#         max_intron_length = config["tophat2"]["max-intron-length"],
-#         max_insertion_length = config["tophat2"]["max-insertion-length"],
-#         max_deletion_length = config["tophat2"]["max-deletion-length"],
-#         max_multihits = config["tophat2"]["max-multihits"],
-#         segment_mismatches = config["tophat2"]["segment-mismatches"],
-#         segment_length = config["tophat2"]["segment-length"],
-#         min_coverage_intron = config["tophat2"]["min-coverage-intron"],
-#         max_coverage_intron = config["tophat2"]["max-coverage-intron"],
-#         min_segment_intron = config["tophat2"]["min-segment-intron"],
-#         max_segment_intron = config["tophat2"]["max-segment-intron"],
-#     conda:
-#         "envs/tophat2.yaml"
-#     threads : config["threads"]
-#     log: "logs/align/align-{sample}.log"
-#     shell:
-#         """
-#         (tophat2 --read-mismatches {params.read_mismatches} --read-gap-length {params.read_gap_length} --read-edit-dist {params.read_edit_dist} -o alignment/{wildcards.sample} --min-anchor-length {params.min_anchor_length} --splice-mismatches {params.splice_mismatches} --min-intron-length {params.min_intron_length} --max-intron-length {params.max_intron_length} --max-insertion-length {params.max_insertion_length} --max-deletion-length {params.max_deletion_length} --num-threads {threads} --max-multihits {params.max_multihits} --library-type fr-firststrand --segment-mismatches {params.segment_mismatches} --no-coverage-search --segment-length {params.segment_length} --min-coverage-intron {params.min_coverage_intron} --max-coverage-intron {params.max_coverage_intron} --min-segment-intron {params.min_segment_intron} --max-segment-intron {params.max_segment_intron} --b2-sensitive ../genome/bowtie2_indexes/{params.basename} {input.fastq}) &> {log}
-#         """
+rule align:
+    input:
+        expand("{idx_path}/{basename}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"],basename=config["combinedgenome"]["name"], num = [1,2,3,4]) if sisamples else expand("{idx_path}/{basename}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], basename=config["genome"]["name"], num = [1,2,3,4]),
+        expand("{idx_path}/{basename}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], basename=config["combinedgenome"]["name"], num=[1,2]) if sisamples else expand("{idx_path}/{basename}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], basename=config["genome"]["name"], num=[1,2]),
+        fastq = "fastq/cleaned/{sample}-clean.fastq.gz"
+    output:
+        "alignment/{sample}/accepted_hits.bam"
+    params:
+        idx_path = config["tophat2"]["bowtie2-index-path"],
+        basename = config["combinedgenome"]["name"] if sisamples else config["genome"]["name"],
+        read_mismatches = config["tophat2"]["read-mismatches"],
+        read_gap_length = config["tophat2"]["read-gap-length"],
+        read_edit_dist = config["tophat2"]["read-edit-dist"],
+        min_anchor_length = config["tophat2"]["min-anchor-length"],
+        splice_mismatches = config["tophat2"]["splice-mismatches"],
+        min_intron_length = config["tophat2"]["min-intron-length"],
+        max_intron_length = config["tophat2"]["max-intron-length"],
+        max_insertion_length = config["tophat2"]["max-insertion-length"],
+        max_deletion_length = config["tophat2"]["max-deletion-length"],
+        max_multihits = config["tophat2"]["max-multihits"],
+        segment_mismatches = config["tophat2"]["segment-mismatches"],
+        segment_length = config["tophat2"]["segment-length"],
+        min_coverage_intron = config["tophat2"]["min-coverage-intron"],
+        max_coverage_intron = config["tophat2"]["max-coverage-intron"],
+        min_segment_intron = config["tophat2"]["min-segment-intron"],
+        max_segment_intron = config["tophat2"]["max-segment-intron"],
+    conda:
+        "envs/tophat2.yaml"
+    threads : config["threads"]
+    log: "logs/align/align-{sample}.log"
+    shell:
+        """
+        (tophat2 --read-mismatches {params.read_mismatches} --read-gap-length {params.read_gap_length} --read-edit-dist {params.read_edit_dist} -o alignment/{wildcards.sample} --min-anchor-length {params.min_anchor_length} --splice-mismatches {params.splice_mismatches} --min-intron-length {params.min_intron_length} --max-intron-length {params.max_intron_length} --max-insertion-length {params.max_insertion_length} --max-deletion-length {params.max_deletion_length} --num-threads {threads} --max-multihits {params.max_multihits} --library-type fr-firststrand --segment-mismatches {params.segment_mismatches} --no-coverage-search --segment-length {params.segment_length} --min-coverage-intron {params.min_coverage_intron} --max-coverage-intron {params.max_coverage_intron} --min-segment-intron {params.min_segment_intron} --max-segment-intron {params.max_segment_intron} --b2-sensitive {params.idx_path}/{params.basename} {input.fastq}) &> {log}
+        """
 
-# rule select_unique_mappers:
-#     input:
-#         "alignment/{sample}/accepted_hits.bam"
-#     output:
-#         temp("alignment/{sample}-unique.bam")
-#     threads: config["threads"]
-#     log: "logs/select_unique_mappers/select_unique_mappers-{sample}.log"
-#     shell: """
-#         (samtools view -b -h -q 50 -@ {threads} {input} | samtools sort -@ {threads} - > {output}) &> {log}
-#         """
+rule select_unique_mappers:
+    input:
+        "alignment/{sample}/accepted_hits.bam"
+    output:
+        temp("alignment/{sample}-unique.bam")
+    threads: config["threads"]
+    log: "logs/select_unique_mappers/select_unique_mappers-{sample}.log"
+    shell: """
+        (samtools view -b -h -q 50 -@ {threads} {input} | samtools sort -@ {threads} - > {output}) &> {log}
+        """
 
-# rule remove_PCR_duplicates:
-#     input:
-#         "alignment/{sample}-unique.bam"
-#     output:
-#         "alignment/{sample}-noPCRdup.bam"
-#     log: "logs/remove_PCR_duplicates/removePCRduplicates-{sample}.log"
-#     shell: """
-#         (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
-#         """
+rule remove_PCR_duplicates:
+    input:
+        "alignment/{sample}-unique.bam"
+    output:
+        "alignment/{sample}-noPCRdup.bam"
+    log: "logs/remove_PCR_duplicates/removePCRduplicates-{sample}.log"
+    shell: """
+        (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
+        """
 
-# rule get_coverage:
-#     input:
-#         "alignment/{sample}-noPCRdup.bam"
-#     output:
-#         SIplmin = "coverage/sicounts/{sample}-tss-sicounts-plmin.bedgraph",
-#         SIpl = "coverage/sicounts/{sample}-tss-sicounts-plus.bedgraph",
-#         SImin = "coverage/sicounts/{sample}-tss-sicounts-minus.bedgraph",
-#         plmin = "coverage/counts/{sample}-tss-counts-plmin.bedgraph",
-#         plus = "coverage/counts/{sample}-tss-counts-plus.bedgraph",
-#         minus = "coverage/counts/{sample}-tss-counts-minus.bedgraph"
-#     params:
-#         exp_prefix = config["combinedgenome"]["experimental_prefix"],
-#         si_prefix = config["combinedgenome"]["spikein_prefix"]
-#     log: "logs/get_coverage/get_coverage-{sample}.log"
-#     shell: """
-#         (genomeCoverageBed -bga -5 -ibam {input} | grep {params.si_prefix} | sed 's/{params.si_prefix}//g' | sort -k1,1 -k2,2n > {output.SIplmin}) &> {log}
-#         (genomeCoverageBed -bga -5 -strand + -ibam {input} | grep {params.si_prefix} | sed 's/{params.si_prefix}//g' | sort -k1,1 -k2,2n > {output.SIpl}) &>> {log}
-#         (genomeCoverageBed -bga -5 -strand - -ibam {input} | grep {params.si_prefix} | sed 's/{params.si_prefix}//g' | sort -k1,1 -k2,2n > {output.SImin}) &>> {log}
-#         (genomeCoverageBed -bga -5 -ibam {input} | grep {params.exp_prefix} | sed 's/{params.exp_prefix}//g' | sort -k1,1 -k2,2n > {output.plmin}) &>> {log}
-#         (genomeCoverageBed -bga -5 -strand + -ibam {input} | grep {params.exp_prefix} | sed 's/{params.exp_prefix}//g' | sort -k1,1 -k2,2n > {output.plus}) &>> {log}
-#         (genomeCoverageBed -bga -5 -strand - -ibam {input} | grep {params.exp_prefix} | sed 's/{params.exp_prefix}//g' | sort -k1,1 -k2,2n > {output.minus}) &>> {log}
-#         """
+rule get_coverage:
+    input:
+        "alignment/{sample}-noPCRdup.bam"
+    params:
+        prefix = lambda wildcards: config["combinedgenome"]["experimental_prefix"] if wildcards.counttype=="counts" else config["combinedgenome"]["spikein_prefix"]
+    output:
+        plmin = "coverage/counts/{sample}-netseq-{counttype}-5end-plmin.bedgraph",
+        plus = "coverage/counts/{sample}-netseq-{counttype}-5end-plus.bedgraph",
+        minus = "coverage/counts/{sample}-netseq-{counttype}-5end-minus.bedgraph",
+        pluswr = "coverage/counts/{sample}-netseq-{counttype}-wholeread-plus.bedgraph",
+        minuswr = "coverage/counts/{sample}-netseq-{counttype}-wholeread-minus.bedgraph"
+    log: "logs/get_coverage/get_coverage-{sample}-{counttype}.log"
+    shell: """
+        (genomeCoverageBed -bga -5 -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.plmin}) &> {log}
+        (genomeCoverageBed -bga -5 -strand - -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.plus}) &>> {log}
+        (genomeCoverageBed -bga -5 -strand + -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.minus}) &>> {log}
+        (genomeCoverageBed -bga -strand - -split -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.pluswr}) &>> {log}
+        (genomeCoverageBed -bga -strand + -split -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.minuswr}) &>> {log}
+        """
 
 # rule normalize:
 #     input:
-#         plus = "coverage/counts/{sample}-tss-counts-plus.bedgraph",
-#         minus = "coverage/counts/{sample}-tss-counts-minus.bedgraph",
-#         plmin = "coverage/counts/{sample}-tss-counts-plmin.bedgraph",
-#         SIplmin = "coverage/sicounts/{sample}-tss-sicounts-plmin.bedgraph"
+#         plus = "coverage/counts/{sample}-netseq-counts-{readtype}-plus.bedgraph",
+#         minus = "coverage/counts/{sample}-netseq-counts-{readtype}-minus.bedgraph",
+#         plmin = lambda wildcards: "coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph" if wildcards.norm=="libsizenorm" else "coverage/sicounts/{sample}-netseq-counts-5end-plmin.bedgraph"
 #     output:
-#         spikePlus = "coverage/spikenorm/{sample}-tss-spikenorm-plus.bedgraph",
-#         spikeMinus = "coverage/spikenorm/{sample}-tss-spikenorm-minus.bedgraph",
-#         libnormPlus = "coverage/libsizenorm/{sample}-tss-libsizenorm-plus.bedgraph",
-#         libnormMinus = "coverage/libsizenorm/{sample}-tss-libsizenorm-minus.bedgraph"
+#         plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
+#         minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
 #     params:
-#         scalefactor = config["spikein-pct"]
-#     log: "logs/normalize/normalize-{sample}.log"
+#         scalefactor = lambda wildcards: config["spikein-pct"] if wildcards.norm=="spikenorm"" else 1
+#     log: "logs/normalize/normalize-{sample}-{norm}-{readtype}.log"
 #     shell: """
-#         (bash scripts/libsizenorm.sh {input.SIplmin} {input.plus} {params.scalefactor} > {output.spikePlus}) &> {log}
-#         (bash scripts/libsizenorm.sh {input.SIplmin} {input.minus} {params.scalefactor} > {output.spikeMinus}) &>> {log}
-#         (bash scripts/libsizenorm.sh {input.plmin} {input.plus} 1 > {output.libnormPlus}) &>> {log}
-#         (bash scripts/libsizenorm.sh {input.plmin} {input.minus} 1 > {output.libnormMinus}) &>> {log}
+#         (bash scripts/libsizenorm.sh {input.plmin} {input.plus} {params.scalefactor} > {output.plus}) &> {log}
+#         (bash scripts/libsizenorm.sh {input.plmin} {input.minus} {params.scalefactor} > {output.minus}) &>> {log}
 #         """
 
 # rule get_si_pct:
 #     input:
-#         plmin = "coverage/counts/{sample}-tss-counts-plmin.bedgraph",
-#         SIplmin = "coverage/sicounts/{sample}-tss-sicounts-plmin.bedgraph"
+#         plmin = "coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph", 
+#         SIplmin = "coverage/sicounts/{sample}-netseq-counts-5end-plmin.bedgraph"
 #     output:
 #         temp("qual_ctrl/all/{sample}-spikeincounts.tsv")
 #     params:
@@ -261,7 +247,7 @@ rule bowtie2_build:
 #         controls = config["comparisons"]["spikenorm"]["controls"],
 #     script: "scripts/plotsipct.R"
 
-# #make 'stranded' genome for datavis purposes
+# #make 'stranded' genome
 # rule make_stranded_genome:
 #     input:
 #         exp = config["genome"]["chrsizes"],
@@ -277,12 +263,12 @@ rule bowtie2_build:
 
 # rule make_stranded_bedgraph:
 #     input:
-#         plus = "coverage/{norm}/{sample}-tss-{norm}-plus.bedgraph",
-#         minus = "coverage/{norm}/{sample}-tss-{norm}-minus.bedgraph"
+#         plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
+#         minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
 #     output:
-#         sense = "coverage/{norm}/{sample}-tss-{norm}-SENSE.bedgraph",
-#         antisense = "coverage/{norm}/{sample}-tss-{norm}-ANTISENSE.bedgraph"
-#     log : "logs/make_stranded_bedgraph/make_stranded_bedgraph-{sample}-{norm}.log"
+#         sense = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-SENSE.bedgraph",
+#         antisense = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-ANTISENSE.bedgraph",
+#     log : "logs/make_stranded_bedgraph/make_stranded_bedgraph-{sample}-{norm}-{readtype}.log"
 #     shell: """
 #         (bash scripts/makeStrandedBedgraph.sh {input.plus} {input.minus} > {output.sense}) &> {log}
 #         (bash scripts/makeStrandedBedgraph.sh {input.minus} {input.plus} > {output.antisense}) &>> {log}
@@ -309,11 +295,11 @@ rule bowtie2_build:
 
 # rule bg_to_bw:
 #     input:
-#         bedgraph = "coverage/{norm}/{sample}-tss-{norm}-{strand}.bedgraph",
+#         bedgraph = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bedgraph",
 #         chrsizes = selectchrom
 #     output:
-#         "coverage/{norm}/bw/{sample}-tss-{norm}-{strand}.bw",
-#     log : "logs/bg_to_bw/bg_to_bw-{sample}-{norm}-{strand}.log"
+#         "coverage/{norm}/bw/{sample}-tss-{norm}-{readtype}-{strand}.bw",
+#     log : "logs/bg_to_bw/bg_to_bw-{sample}-{norm}-{readtype}-{strand}.log"
 #     shell: """
 #         (bedGraphToBigWig {input.bedgraph} {input.chrsizes} {output}) &> {log}
 #         """
@@ -393,7 +379,7 @@ rule bowtie2_build:
 
 # rule union_bedgraph:
 #     input:
-#         exp = expand("coverage/{{norm}}/{sample}-tss-{{norm}}-SENSE.bedgraph", sample=SAMPLES)
+#         exp = expand("coverage/{{norm}}/{sample}-netseq-{{norm}}-5end-SENSE.bedgraph", sample=SAMPLES)
 #     output:
 #         exp = "coverage/{norm}/union-bedgraph-allsamples-{norm}.tsv.gz",
 #     params:

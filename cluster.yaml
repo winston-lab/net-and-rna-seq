@@ -12,12 +12,8 @@ fastqc_raw:
     n : 1
     mem : 4000
 
-remove_adapter:
+remove_adapter_and_qual_trim:
     time : 90 
-    mem : 2000
-
-remove_3p_barcode_and_qual_trim:
-    time : 30 
     mem : 2000
 
 remove_molec_barcode:
@@ -40,8 +36,8 @@ align:
     mem : 8000
 
 select_unique_mappers:
-    time : 180
-    n : 1
+    time : 120
+    n : 2
     mem : 6000
 
 remove_PCR_duplicates:
