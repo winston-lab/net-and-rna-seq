@@ -10,15 +10,16 @@ sisamples = {k:v for (k,v) in SAMPLES.items() if v["spikein"]=="y"}
 PASSING = {k:v for (k,v) in SAMPLES.items() if v["pass-qc"] == "pass"}
 sipassing = {k:v for (k,v) in PASSING.items() if v["spikein"] == "y"}
 
-controlgroups = [g for g in config["comparisons"]["libsizenorm"]["controls"] if g in PASSING]
-conditiongroups = [g for g in config["comparisons"]["libsizenorm"]["conditions"] if g in PASSING]
+controlgroups = config["comparisons"]["libsizenorm"]["controls"]
+conditiongroups = config["comparisons"]["libsizenorm"]["conditions"]
+
 if sipassing:
-    controlgroups_si = [g for g in config["comparisons"]["spikenorm"]["controls"] if g in sipassing]
-    conditiongroups_si = [g for g in config["comparisons"]["spikenorm"]["conditions"] if g in sipassing]
+    controlgroups_si = config["comparisons"]["spikenorm"]["controls"]
+    conditiongroups_si = config["comparisons"]["spikenorm"]["conditions"]
 
 # CATEGORIES = ["genic", "intragenic", "intergenic", "antisense", "convergent", "divergent"]
 COUNTTYPES = ["counts", "sicounts"] if sisamples else ["counts"]
-#NORMS = ["libsizenorm", "spikenorm"] if sisamples else ["libsizenorm"]
+NORMS = ["libsizenorm", "spikenorm"] if sisamples else ["libsizenorm"]
 
 localrules:
     all,
@@ -31,14 +32,12 @@ rule all:
         #alignment
         expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES),
         #coverage
-        expand("coverage/counts/{sample}-netseq-{counttype}-5end-plmin.bedgraph", sample=SAMPLES, counttype=COUNTTYPES),
-#       expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
-        # expand("coverage/{norm}/bw/{sample}-tss-{norm}-{strand}.bw", norm=["spikenorm","libsizenorm", "counts", "sicounts"], sample=SAMPLES, strand=["SENSE","ANTISENSE","plus","minus"]),
-        #datavis
-        # #quality control
+        expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
+        expand("coverage/{norm}/union-bedgraph-allsamples-{norm}.tsv.gz", norm=NORMS),
+        #quality control
         # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
-        # expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-tss-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]),
-        # expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-tss-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"]),
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-tss-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-tss-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"]) if sisamples else expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-tss-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) ,
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-tss-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) ,
 
 def plotcorrsamples(wildcards):
     dd = SAMPLES if wildcards.status=="all" else PASSING
@@ -166,7 +165,7 @@ rule select_unique_mappers:
     threads: config["threads"]
     log: "logs/select_unique_mappers/select_unique_mappers-{sample}.log"
     shell: """
-        (samtools view -b -h -q 50 -@ {threads} {input} | samtools sort -@ {threads} - > {output}) &> {log}
+        (samtools view -buh -q 50 -@ {threads} {input} | samtools sort -@ {threads} - > {output}) &> {log}
         """
 
 rule remove_PCR_duplicates:
@@ -199,21 +198,21 @@ rule get_coverage:
         (genomeCoverageBed -bga -strand + -split -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.minuswr}) &>> {log}
         """
 
-# rule normalize:
-#     input:
-#         plus = "coverage/counts/{sample}-netseq-counts-{readtype}-plus.bedgraph",
-#         minus = "coverage/counts/{sample}-netseq-counts-{readtype}-minus.bedgraph",
-#         plmin = lambda wildcards: "coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph" if wildcards.norm=="libsizenorm" else "coverage/sicounts/{sample}-netseq-counts-5end-plmin.bedgraph"
-#     output:
-#         plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
-#         minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
-#     params:
-#         scalefactor = lambda wildcards: config["spikein-pct"] if wildcards.norm=="spikenorm"" else 1
-#     log: "logs/normalize/normalize-{sample}-{norm}-{readtype}.log"
-#     shell: """
-#         (bash scripts/libsizenorm.sh {input.plmin} {input.plus} {params.scalefactor} > {output.plus}) &> {log}
-#         (bash scripts/libsizenorm.sh {input.plmin} {input.minus} {params.scalefactor} > {output.minus}) &>> {log}
-#         """
+rule normalize:
+    input:
+        plus = "coverage/counts/{sample}-netseq-counts-{readtype}-plus.bedgraph",
+        minus = "coverage/counts/{sample}-netseq-counts-{readtype}-minus.bedgraph",
+        plmin = lambda wildcards: "coverage/counts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph" if wildcards.norm=="libsizenorm" else "coverage/sicounts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph"
+    output:
+        plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
+        minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
+    params:
+        scalefactor = lambda wildcards: config["spikein-pct"] if wildcards.norm=="spikenorm" else 1
+    log: "logs/normalize/normalize-{sample}-{norm}-{readtype}.log"
+    shell: """
+        (bash scripts/libsizenorm.sh {input.plmin} {input.plus} {params.scalefactor} > {output.plus}) &> {log}
+        (bash scripts/libsizenorm.sh {input.plmin} {input.minus} {params.scalefactor} > {output.minus}) &>> {log}
+        """
 
 # rule get_si_pct:
 #     input:
@@ -250,32 +249,31 @@ rule get_coverage:
 #         controls = config["comparisons"]["spikenorm"]["controls"],
 #     script: "scripts/plotsipct.R"
 
-# #make 'stranded' genome
-# rule make_stranded_genome:
-#     input:
-#         exp = config["genome"]["chrsizes"],
-#         si = config["genome"]["sichrsizes"]
-#     output:
-#         exp = os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv",
-#         si = os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv",
-#     log: "logs/make_stranded_genome.log"
-#     shell: """
-#         (awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2}}{{print $1"-minus", $2}}' {input.exp} > {output.exp}) &> {log}
-#         (awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2}}{{print $1"-minus", $2}}' {input.si} > {output.si}) &>> {log}
-#         """
+rule make_stranded_genome:
+    input:
+        exp = config["genome"]["chrsizes"],
+        si = config["genome"]["sichrsizes"]
+    output:
+        exp = os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv",
+        si = os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv",
+    log: "logs/make_stranded_genome.log"
+    shell: """
+        (awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2}}{{print $1"-minus", $2}}' {input.exp} > {output.exp}) &> {log}
+        (awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2}}{{print $1"-minus", $2}}' {input.si} > {output.si}) &>> {log}
+        """
 
-# rule make_stranded_bedgraph:
-#     input:
-#         plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
-#         minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
-#     output:
-#         sense = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-SENSE.bedgraph",
-#         antisense = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-ANTISENSE.bedgraph",
-#     log : "logs/make_stranded_bedgraph/make_stranded_bedgraph-{sample}-{norm}-{readtype}.log"
-#     shell: """
-#         (bash scripts/makeStrandedBedgraph.sh {input.plus} {input.minus} > {output.sense}) &> {log}
-#         (bash scripts/makeStrandedBedgraph.sh {input.minus} {input.plus} > {output.antisense}) &>> {log}
-#         """
+rule make_stranded_bedgraph:
+    input:
+        plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
+        minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
+    output:
+        sense = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-SENSE.bedgraph",
+        antisense = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-ANTISENSE.bedgraph",
+    log : "logs/make_stranded_bedgraph/make_stranded_bedgraph-{sample}-{norm}-{readtype}.log"
+    shell: """
+        (bash scripts/makeStrandedBedgraph.sh {input.plus} {input.minus} > {output.sense}) &> {log}
+        (bash scripts/makeStrandedBedgraph.sh {input.minus} {input.plus} > {output.antisense}) &>> {log}
+        """
 
 # rule make_stranded_annotations:
 #     input:
@@ -287,25 +285,25 @@ rule get_coverage:
 #         (bash scripts/makeStrandedBed.sh {input} > {output}) &> {log}
 #         """
 
-# def selectchrom(wildcards):
-#     if wildcards.strand in ["plus", "minus"]:
-#         if wildcards.norm=="sicounts":
-#             return config["genome"]["sichrsizes"]
-#         return config["genome"]["chrsizes"]
-#     if wildcards.norm=="sicounts":
-#         return os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv"
-#     return os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv"
+def selectchrom(wildcards):
+    if wildcards.strand in ["plus", "minus"]:
+        if wildcards.norm=="sicounts":
+            return config["genome"]["sichrsizes"]
+        return config["genome"]["chrsizes"]
+    if wildcards.norm=="sicounts":
+        return os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv"
+    return os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv"
 
-# rule bg_to_bw:
-#     input:
-#         bedgraph = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bedgraph",
-#         chrsizes = selectchrom
-#     output:
-#         "coverage/{norm}/bw/{sample}-tss-{norm}-{readtype}-{strand}.bw",
-#     log : "logs/bg_to_bw/bg_to_bw-{sample}-{norm}-{readtype}-{strand}.log"
-#     shell: """
-#         (bedGraphToBigWig {input.bedgraph} {input.chrsizes} {output}) &> {log}
-#         """
+rule bg_to_bw:
+    input:
+        bedgraph = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bedgraph",
+        chrsizes = selectchrom
+    output:
+        "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bw",
+    log : "logs/bg_to_bw/bg_to_bw-{sample}-{norm}-{readtype}-{strand}.log"
+    shell: """
+        (bedGraphToBigWig {input.bedgraph} {input.chrsizes} {output}) &> {log}
+        """
 
 # rule deeptools_matrix:
 #     input:
@@ -380,28 +378,28 @@ rule get_coverage:
 #     script:
 #         "scripts/plotHeatmaps.R"
 
-# rule union_bedgraph:
-#     input:
-#         exp = expand("coverage/{{norm}}/{sample}-netseq-{{norm}}-5end-SENSE.bedgraph", sample=SAMPLES)
-#     output:
-#         exp = "coverage/{norm}/union-bedgraph-allsamples-{norm}.tsv.gz",
-#     params:
-#         names = " ".join(SAMPLES)
-#     log: "logs/union_bedgraph-{norm}.log"
-#     shell: """
-#         (bedtools unionbedg -i {input.exp} -header -names {params.names} | bash scripts/cleanUnionbedg.sh | pigz > {output.exp}) &> {log}
-#         """
+rule union_bedgraph:
+    input:
+        exp = expand("coverage/{{norm}}/{sample}-netseq-{{norm}}-5end-SENSE.bedgraph", sample=SAMPLES)
+    output:
+        exp = "coverage/{norm}/union-bedgraph-allsamples-{norm}.tsv.gz",
+    params:
+        names = " ".join(SAMPLES)
+    log: "logs/union_bedgraph-{norm}.log"
+    shell: """
+        (bedtools unionbedg -i {input.exp} -header -names {params.names} | bash scripts/cleanUnionbedg.sh | pigz > {output.exp}) &> {log}
+        """
 
-# rule plotcorrelations:
-#     input:
-#         "coverage/{norm}/union-bedgraph-allsamples-{norm}.tsv.gz"
-#     output:
-#         "qual_ctrl/{status}/{condition}-v-{control}-tss-{norm}-correlations.svg"
-#     params:
-#         pcount = 0.1,
-#         samplelist = plotcorrsamples
-#     script:
-#         "scripts/plotcorr.R"
+rule plotcorrelations:
+    input:
+        "coverage/{norm}/union-bedgraph-allsamples-{norm}.tsv.gz"
+    output:
+        "qual_ctrl/{status}/{condition}-v-{control}-tss-{norm}-correlations.svg"
+    params:
+        pcount = 0.1,
+        samplelist = plotcorrsamples
+    script:
+        "scripts/plotcorr.R"
 
 # rule build_genic_annotation:
 #     input:

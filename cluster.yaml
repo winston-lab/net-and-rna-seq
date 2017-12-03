@@ -85,8 +85,8 @@ union_bedgraph:
     mem: 4000
 
 plotcorrelations:
-    time : 30 
-    mem : 6000
+    time : 45 
+    mem : 12000
 
 call_tss_peaks:
     time: 20
