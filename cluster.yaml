@@ -80,7 +80,11 @@ r_datavis:
     time : 30
     mem : 10000
 
-union_bedgraph:
+map_to_windows:
+    time: 15
+    mem: 2000
+
+join_window_counts:
     time: 30
     mem: 4000
 
@@ -88,44 +92,11 @@ plotcorrelations:
     time : 45 
     mem : 12000
 
-call_tss_peaks:
-    time: 20
-    mem: 4000
 
-tss_peaks_idr:
-    time: 30
-    mem: 6000
+# call_de_peaks:
+#     time: 30
+#     mem: 10000
 
-peakstats:
-    time: 30
-    mem: 10000
-
-call_de_peaks:
-    time: 30
-    mem: 10000
-
-summarise_de_results:
-    time: 15 
-    mem: 4000
-
-# get_intra_orfs:
-#     time : 719
-#     mem : 20000
-
-# meme_chip:
-#     time : 719
-#     mem : 10000
-#     n : 2 #this is hardcoded in the snakefile to run with two cores
-
-# class_v_genic:
-#     time : 360
-#     mem : 10000
-
-
-
-
-# get_de_intragenic_frequency
-# plot_de_intragenic_frequency
-# get_peak_sequences
-# meme_chip
-# class_v_genic
+# summarise_de_results:
+#     time: 15 
+#     mem: 4000

@@ -20,7 +20,7 @@ main = function(intable, pcount, samplelist, outpath){
             idx = ncol(df)*(i-1)+j
             #upper right (correlation)
             if (i < j){
-                c = cor(df[,i], df[,j], use = "complete.obs")
+                c = cor(df[,i], df[,j], use = "complete.obs") %>% as.numeric()
                 plot = ggplot(data = tibble(x=c(0,1), y=c(0,1), corr=c)) +
                         geom_rect(aes(fill=corr), xmin=0, ymin=0, xmax=1, ymax=1) +
                         annotate("text", x=0.5, y=0.5, label=sprintf("%.2f",round(c,2)), size=10*c) +
@@ -33,11 +33,11 @@ main = function(intable, pcount, samplelist, outpath){
             else if (i == j){
                 subdf = df %>% select(i) %>% gather(sample, value)
                 plot = ggplot(data = subdf, aes(x=(value+pcount))) +
-                        geom_density(aes(y=..scaled..), fill="black", size=1) +
+                        geom_density(aes(y=..scaled..), color="black", size=1) +
                         scale_y_continuous(breaks=c(0,.5,1)) +
                         scale_x_log10(limit = c(pcount, maxsignal)) +
-                        annotate("text", x=.90*maxsignal, y=0.5, hjust=1, 
-                                 label=unique(subdf$sample), size=4, fontface="bold") 
+                        annotate("text", x=.90*maxsignal, y=0.9, hjust=1, 
+                                 label=unique(subdf$sample), size=3, fontface="bold") 
                 plots[[idx]] = plot
             }
             #bottom left (scatter)

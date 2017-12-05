@@ -38,7 +38,7 @@ plotheatmaps = function(intable, samplelist, upstream, dnstream, pct_cutoff, ref
                          labels= axislabel(up = upstream, dn=dnstream, xlab=refptlab),
                          minor_breaks = scales::pretty_breaks(n=10),
                          name=paste("distance from", refptlab, "(kb)")) +
-      scale_fill_viridis(option = cmap, na.value="#FFFFFF00", name=expression(bold(paste(log[2], '(TSS-seq signal)'))), guide=guide_colorbar(title.position="top", barwidth=15, barheight=1, title.hjust=0.5)) +
+      scale_fill_viridis(option = cmap, na.value="#FFFFFF00", name=expression(bold(paste(log[2], '(NET-seq signal)'))), guide=guide_colorbar(title.position="top", barwidth=15, barheight=1, title.hjust=0.5)) +
       theme_minimal() +
       theme(text = element_text(size=12, face="bold", color="black"),
               legend.position = "top",
