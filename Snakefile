@@ -35,7 +35,7 @@ rule all:
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         #quality control
         # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
-        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"]) if sisamples else expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) ,
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"]) if sisamples else expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]),
         #datavis
         # expand("datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz", annotation=config["annotations"], norm=NORMS, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]),
         expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) + expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) if sisamples else expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"])
@@ -111,8 +111,8 @@ rule bowtie2_build:
     input:
         fasta = config["combinedgenome"]["fasta"] if sisamples else config["genome"]["fasta"]
     output:
-        expand("{idx_path}/{{basename}}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], num=[1,2,3,4]),
-        expand("{idx_path}/{{basename}}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], num=[1,2])
+        expand(config["tophat2"]["bowtie2-index-path"] + "/{{basename}}.{num}.bt2", num=[1,2,3,4]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/{{basename}}.rev.{num}.bt2", num=[1,2])
     params:
         idx_path = config["tophat2"]["bowtie2-index-path"],
         prefix = config["combinedgenome"]["experimental_prefix"]
@@ -125,8 +125,8 @@ rule bowtie2_build:
 
 rule align:
     input:
-        expand("{idx_path}/{basename}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"],basename=config["combinedgenome"]["name"], num = [1,2,3,4]) if sisamples else expand("{idx_path}/{basename}.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], basename=config["genome"]["name"], num = [1,2,3,4]),
-        expand("{idx_path}/{basename}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], basename=config["combinedgenome"]["name"], num=[1,2]) if sisamples else expand("{idx_path}/{basename}.rev.{num}.bt2", idx_path=config["tophat2"]["bowtie2-index-path"], basename=config["genome"]["name"], num=[1,2]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".{num}.bt2", num = [1,2,3,4]) if sisamples else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".{num}.bt2", num = [1,2,3,4]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".rev.{num}.bt2", num=[1,2]) if sisamples else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".rev.{num}.bt2", num=[1,2]),
         fastq = "fastq/cleaned/{sample}-clean.fastq.gz"
     output:
         "alignment/{sample}/accepted_hits.bam"
@@ -166,7 +166,7 @@ rule select_unique_mappers:
     threads: config["threads"]
     log: "logs/select_unique_mappers/select_unique_mappers-{sample}.log"
     shell: """
-        (samtools view -buh -q 50 -@ {threads} {input} | samtools sort -@ {threads} - > {output}) &> {log}
+        (samtools view -buh -q 50 -@ {threads} {input} | samtools sort -T .{wildcards.sample} -@ {threads} - > {output}) &> {log}
         """
 
 rule remove_PCR_duplicates:
@@ -185,11 +185,11 @@ rule get_coverage:
     params:
         prefix = lambda wildcards: config["combinedgenome"]["experimental_prefix"] if wildcards.counttype=="counts" else config["combinedgenome"]["spikein_prefix"]
     output:
-        plmin = "coverage/counts/{sample}-netseq-{counttype}-5end-plmin.bedgraph",
-        plus = "coverage/counts/{sample}-netseq-{counttype}-5end-plus.bedgraph",
-        minus = "coverage/counts/{sample}-netseq-{counttype}-5end-minus.bedgraph",
-        pluswr = "coverage/counts/{sample}-netseq-{counttype}-wholeread-plus.bedgraph",
-        minuswr = "coverage/counts/{sample}-netseq-{counttype}-wholeread-minus.bedgraph"
+        plmin = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-5end-plmin.bedgraph",
+        plus = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-5end-plus.bedgraph",
+        minus = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-5end-minus.bedgraph",
+        pluswr = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-wholeread-plus.bedgraph",
+        minuswr = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-wholeread-minus.bedgraph"
     log: "logs/get_coverage/get_coverage-{sample}-{counttype}.log"
     shell: """
         (genomeCoverageBed -bga -5 -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.plmin}) &> {log}
@@ -217,7 +217,7 @@ rule normalize:
 
 # rule get_si_pct:
 #     input:
-#         plmin = "coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph", 
+#         plmin = "coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph",
 #         SIplmin = "coverage/sicounts/{sample}-netseq-counts-5end-plmin.bedgraph"
 #     output:
 #         temp("qual_ctrl/all/{sample}-spikeincounts.tsv")

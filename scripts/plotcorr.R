@@ -49,7 +49,7 @@ main = function(intable, pcount, samplelist, outpath){
                             filter(!(xvalue < 6*pcount & yvalue < 6*pcount))
                 plot = ggplot(data = subdf, aes(x=xvalue+pcount, y=yvalue+pcount)) +
                             geom_abline(intercept = 0, slope=1, color="grey80", size=.5) +
-                            stat_bin_hex(geom="point", aes(color=log10(..count..)), binwidth=c(.04,.04), size=.15, shape=16) +
+                            stat_bin_hex(geom="point", aes(color=log10(..count..)), binwidth=c(.04,.04), size=.15, shape=16, stroke=0) +
                             scale_fill_viridis(option="inferno") +
                             scale_color_viridis(option="inferno") +
                             scale_x_log10(limit = c(pcount, maxsignal)) +
