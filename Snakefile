@@ -35,7 +35,8 @@ rule all:
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         #quality control
         # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
-        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"]) if sisamples else expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]),
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"]) if sisamples else
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"]),
         #datavis
         # expand("datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz", annotation=config["annotations"], norm=NORMS, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]),
         expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) + expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) if sisamples else expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"])
@@ -185,11 +186,13 @@ rule get_coverage:
     params:
         prefix = lambda wildcards: config["combinedgenome"]["experimental_prefix"] if wildcards.counttype=="counts" else config["combinedgenome"]["spikein_prefix"]
     output:
-        plmin = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-5end-plmin.bedgraph",
-        plus = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-5end-plus.bedgraph",
-        minus = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-5end-minus.bedgraph",
-        pluswr = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-wholeread-plus.bedgraph",
-        minuswr = "coverage/{counttype,counts|sicounts}/{sample}-netseq-{counttype}-wholeread-minus.bedgraph"
+        plmin = "coverage/{counttype}/{sample}-netseq-{counttype}-5end-plmin.bedgraph",
+        plus = "coverage/{counttype}/{sample}-netseq-{counttype}-5end-plus.bedgraph",
+        minus = "coverage/{counttype}/{sample}-netseq-{counttype}-5end-minus.bedgraph",
+        pluswr = "coverage/{counttype}/{sample}-netseq-{counttype}-wholeread-plus.bedgraph",
+        minuswr = "coverage/{counttype}/{sample}-netseq-{counttype}-wholeread-minus.bedgraph"
+    wildcard_constraints:
+        counttype="counts|sicounts"
     log: "logs/get_coverage/get_coverage-{sample}-{counttype}.log"
     shell: """
         (genomeCoverageBed -bga -5 -ibam {input} | grep {params.prefix} | sed 's/{params.prefix}//g' | sort -k1,1 -k2,2n > {output.plmin}) &> {log}
@@ -201,18 +204,15 @@ rule get_coverage:
 
 rule normalize:
     input:
-        plus = "coverage/counts/{sample}-netseq-counts-{readtype}-plus.bedgraph",
-        minus = "coverage/counts/{sample}-netseq-counts-{readtype}-minus.bedgraph",
+        counts = "coverage/counts/{sample}-netseq-counts-{readtype}-{strand}.bedgraph",
         plmin = lambda wildcards: "coverage/counts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph" if wildcards.norm=="libsizenorm" else "coverage/sicounts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph"
     output:
-        plus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-plus.bedgraph",
-        minus = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-minus.bedgraph",
+        normalized = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bedgraph",
     params:
         scalefactor = lambda wildcards: config["spikein-pct"] if wildcards.norm=="spikenorm" else 1
     log: "logs/normalize/normalize-{sample}-{norm}-{readtype}.log"
     shell: """
-        (bash scripts/libsizenorm.sh {input.plmin} {input.plus} {params.scalefactor} > {output.plus}) &> {log}
-        (bash scripts/libsizenorm.sh {input.plmin} {input.minus} {params.scalefactor} > {output.minus}) &>> {log}
+        (bash scripts/libsizenorm.sh {input.plmin} {input.counts} {params.scalefactor} > {output.normalized}) &> {log}
         """
 
 # rule get_si_pct:
@@ -304,7 +304,7 @@ rule plotcorrelations:
     input:
         "coverage/{norm}/union-bedgraph-allwindowcoverage-{norm}.tsv.gz",
     output:
-        "qual_ctrl/{status}/{condition}-v-{control}-netseq-{norm}-correlations.svg"
+        "qual_ctrl/{status}/{condition}-v-{control}-netseq-{status}-{norm}-correlations.svg"
     params:
         pcount = 0.1,
         samplelist = plotcorrsamples
@@ -350,7 +350,7 @@ rule deeptools_matrix:
         matrix = temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv")
     params:
         refpoint = lambda wildcards: config["annotations"][wildcards.annotation]["refpoint"],
-        upstream = lambda wildcards: config["annotations"][wildcards.annotation]["upstream"],
+        upstream = lambda wildcards: config["annotations"][wildcards.annotation]["upstream"] + config["annotations"][wildcards.annotation]["binsize"],
         dnstream = lambda wildcards: config["annotations"][wildcards.annotation]["dnstream"],
         binsize = lambda wildcards: config["annotations"][wildcards.annotation]["binsize"],
         sort = lambda wildcards: config["annotations"][wildcards.annotation]["sort"],
