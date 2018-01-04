@@ -3,14 +3,17 @@ library(GGally)
 library(viridis)
 library(forcats)
 
-main = function(intable, pcount, samplelist, outpath){
-    df = intable %>% read_tsv() %>% gather(key=sample, value=signal, -name) %>%
-            filter(sample %in% samplelist)
-    df$sample = fct_inorder(df$sample, ordered=TRUE)
-    df = df %>% spread(sample, signal) %>% select(-name)
+main = function(intable, pcount, samplelist, binsize, outpath){
+    df = intable %>% read_tsv() %>%
+        gather(key=sample, value=signal, -name) %>%
+        filter(sample %in% samplelist) %>%
+        mutate_at(vars(sample), funs(fct_inorder(., ordered=TRUE))) %>%
+        spread(sample, signal) %>%
+        select(-name)
     
+    df = df[which(rowSums(df)>0),]
     maxsignal = max(df) + pcount
-    mincor = min(cor(df, use="complete.obs"))
+    mincor = min(cor(df, use="complete.obs")) * .99
     plots = list()
     
     #for each row
@@ -60,6 +63,7 @@ main = function(intable, pcount, samplelist, outpath){
     }
     
     mat = ggmatrix(plots, nrow=ncol(df), ncol=ncol(df),
+                   title = paste0("NET-seq signal ", binsize, "nt bins"),
                    xAxisLabels = names(df), yAxisLabels = names(df), switch="both") +
                     theme_light() +
                     theme(axis.text = element_text(size=9),
@@ -70,7 +74,7 @@ main = function(intable, pcount, samplelist, outpath){
                           strip.switch.pad.grid = unit(0, "points"),
                           strip.switch.pad.wrap = unit(0, "points"))
     w = 3+ncol(df)*4
-    h = 9/16*w
+    h = 9/16*w+0.5
     ggsave(outpath, mat, width=w, height=h, units="cm")
     print(warnings())
 }    
@@ -78,4 +82,5 @@ main = function(intable, pcount, samplelist, outpath){
 main(intable = snakemake@input[[1]],
      pcount = snakemake@params[["pcount"]],
      samplelist = snakemake@params[["samplelist"]],
+     binsize = snakemake@wildcards[["windowsize"]],
      outpath = snakemake@output[[1]])
