@@ -12,7 +12,7 @@ fastqc_raw:
     n : 1
     mem : 4000
 
-remove_adapter_and_qual_trim:
+clean_reads:
     time : 90 
     mem : 2000
 
@@ -25,6 +25,26 @@ fastqc_cleaned:
     time : 10 
     n : 1
     mem : 4000
+
+fastqc_aligned:
+    time : 20 
+    n : 1
+    mem : 4000
+
+plot_fastqc_summary:
+    time: 10
+    n: 1
+    mem: 8000
+
+read_processing_numbers:
+    time: 5
+    n: 1
+    mem: 4000
+
+plot_read_processing:
+    time: 5
+    n: 1
+    mem: 4000
 
 bowtie2_build:
     time : 60

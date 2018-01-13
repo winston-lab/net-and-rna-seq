@@ -27,19 +27,19 @@ localrules:
 rule all:
     input:
         #FastQC
-        expand("qual_ctrl/fastqc/raw/{sample}", sample=SAMPLES),
-        expand("qual_ctrl/fastqc/cleaned/{sample}/{sample}-clean_fastqc.zip", sample=SAMPLES),
+        'qual_ctrl/fastqc/per_base_sequence_content.svg',
         #alignment
         expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES),
         #coverage
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         #quality control
+        "qual_ctrl/read_processing-loss.svg",
         # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
         #datavis
         # expand("datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz", annotation=config["annotations"], norm=NORMS, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]),
-        expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) + expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) if sisamples else expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"])
+        # expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) + expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) if sisamples else expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"])
 
 def plotcorrsamples(wildcards):
     dd = SAMPLES if wildcards.status=="all" else PASSING
@@ -56,27 +56,28 @@ def plotcorrsamples(wildcards):
 rule fastqc_raw:
     input:
         lambda wildcards: SAMPLES[wildcards.sample]["fastq"]
+    params:
+        adapter = config["cutadapt"]["adapter"]
     output:
-        "qual_ctrl/fastqc/raw/{sample}"
+        "qual_ctrl/fastqc/raw/{sample}/{fname}/fastqc_data.txt"
     threads: config["threads"]
     log: "logs/fastqc/raw/fastqc-raw-{sample}.log"
     shell: """
-        (mkdir -p {output}) &> {log}
-        (fastqc -o {output} --noextract -t {threads} {input}) &>> {log}
+        (mkdir -p qual_ctrl/fastqc/raw/{wildcards.sample}) &> {log}
+        (fastqc -a <(echo -e "adapter\t{params.adapter}") --nogroup --extract -t {threads} -o qual_ctrl/fastqc/raw/{wildcards.sample} {input}) &>> {log}
         """
 
-#reads shorter than 17 are thrown out, as the first 6 bases are the molecular barcode and 11-mer is around the theoretical minimum length to map uniquely to the Sc genome (~12Mb)
-rule remove_adapter_and_qual_trim:
+rule clean_reads:
     input:
         lambda wildcards: SAMPLES[wildcards.sample]["fastq"]
     output:
-        temp("fastq/cleaned/{sample}-trim.fastq")
+        fq = temp("fastq/cleaned/{sample}-trim.fastq"),
+        log = "logs/clean_reads/clean_reads-{sample}.log"
     params:
         adapter = config["cutadapt"]["adapter"],
         trim_qual = config["cutadapt"]["trim_qual"]
-    log: "logs/remove_adapter/remove_adapter-{sample}.log"
     shell: """
-        (cutadapt --cut=-1 --trim-n -a {params.adapter} --nextseq-trim={params.trim_qual} -m 17 --length-tag 'length=' -o {output} {input}) &> {log}
+        (cutadapt --cut=-1 --trim-n -a {params.adapter} --nextseq-trim={params.trim_qual} -m 12 --length-tag 'length=' -o {output.fq} {input}) &> {output.log}
         """
 
 rule remove_molec_barcode:
@@ -96,15 +97,86 @@ rule remove_molec_barcode:
 rule fastqc_cleaned:
     input:
         "fastq/cleaned/{sample}-clean.fastq.gz"
+    params:
+        adapter = config["cutadapt"]["adapter"]
     output:
-        html = "qual_ctrl/fastqc/cleaned/{sample}/{sample}-clean_fastqc.html",
-        folder  = "qual_ctrl/fastqc/cleaned/{sample}/{sample}-clean_fastqc.zip"
+        "qual_ctrl/fastqc/cleaned/{sample}-clean_fastqc/fastqc_data.txt",
     threads : config["threads"]
     log: "logs/fastqc/cleaned/fastqc-cleaned-{sample}.log"
     shell: """
-        (mkdir -p qual_ctrl/fastqc/cleaned/{wildcards.sample}) &> {log}
-        (fastqc -o qual_ctrl/fastqc/cleaned/{wildcards.sample} --noextract -t {threads} {input}) &>> {log}
+        (mkdir -p qual_ctrl/fastqc/cleaned) &> {log}
+        (fastqc -a <(echo -e "adapter\t{params.adapter}") --nogroup --extract -t {threads} -o qual_ctrl/fastqc/cleaned {input}) &>> {log}
         """
+
+rule fastqc_aligned:
+    input:
+        lambda wildcards: "alignment/" + wildcards.sample + "-noPCRdup.bam" if wildcards.fqtype=="aligned_noPCRdup" else "alignment/" + wildcards.sample + "/unmapped.bam",
+    params:
+        adapter = config["cutadapt"]["adapter"]
+    output:
+        "qual_ctrl/fastqc/{fqtype}/{sample}-{fqtype}_fastqc/fastqc_data.txt",
+    threads : config["threads"]
+    log: "logs/fastqc/{fqtype}/fastqc-{fqtype}-{sample}.log"
+    wildcard_constraints:
+        fqtype="aligned_noPCRdup|unaligned"
+    shell: """
+        (mkdir -p qual_ctrl/fastqc/{wildcards.fqtype}) &> {log}
+        (bedtools bamtofastq -fq qual_ctrl/fastqc/{wildcards.fqtype}/{wildcards.sample}-{wildcards.fqtype}.fastq -i {input}) &>> {log}
+        (fastqc -a <(echo -e "adapter\t{params.adapter}") --nogroup --extract -t {threads} -o qual_ctrl/fastqc/{wildcards.fqtype} qual_ctrl/fastqc/{wildcards.fqtype}/{wildcards.sample}-{wildcards.fqtype}.fastq) &>> {log}
+        (rm qual_ctrl/fastqc/{wildcards.fqtype}/{wildcards.sample}-{wildcards.fqtype}.fastq) &>> {log}
+        """
+
+rule fastqc_aggregate:
+    input:
+        raw = expand("qual_ctrl/fastqc/raw/{sample}/{fname}/fastqc_data.txt", zip, sample=SAMPLES, fname=[os.path.split(v["fastq"])[1].split(".fastq")[0] + "_fastqc" for k,v in SAMPLES.items()]),
+        cleaned = expand("qual_ctrl/fastqc/cleaned/{sample}-clean_fastqc/fastqc_data.txt", sample=SAMPLES),
+        aligned_noPCRdup = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}-aligned_noPCRdup_fastqc/fastqc_data.txt", sample=SAMPLES),
+        unaligned = expand("qual_ctrl/fastqc/unaligned/{sample}-unaligned_fastqc/fastqc_data.txt", sample=SAMPLES),
+    output:
+        'qual_ctrl/fastqc/per_base_quality.tsv',
+        'qual_ctrl/fastqc/per_tile_quality.tsv',
+        'qual_ctrl/fastqc/per_sequence_quality.tsv',
+        'qual_ctrl/fastqc/per_base_sequence_content.tsv',
+        'qual_ctrl/fastqc/per_sequence_gc.tsv',
+        'qual_ctrl/fastqc/per_base_n.tsv',
+        'qual_ctrl/fastqc/sequence_length_distribution.tsv',
+        'qual_ctrl/fastqc/sequence_duplication_levels.tsv',
+        'qual_ctrl/fastqc/adapter_content.tsv',
+        'qual_ctrl/fastqc/kmer_content.tsv'
+    run:
+        shell("rm -f {output}")
+        #for each statistic
+        for outpath, stat, header in zip(output, ["Per base sequence quality", "Per tile sequence quality", "Per sequence quality scores", "Per base sequence content", "Per sequence GC content", "Per base N content", "Sequence Length Distribution", "Total Deduplicated Percentage", "Adapter Content", "Kmer Content"], ["base\tmean\tmedian\tlower_quartile\tupper_quartile\tten_pct\tninety_pct\tsample\tstatus", "tile\tbase\tmean\tsample\tstatus",
+        "quality\tcount\tsample\tstatus", "base\tg\ta\tt\tc\tsample\tstatus", "gc_content\tcount\tsample\tstatus", "base\tn_count\tsample\tstatus", "length\tcount\tsample\tstatus", "duplication_level\tpct_of_deduplicated\tpct_of_total\tsample\tstatus", "position\tpct\tsample\tstatus",
+        "sequence\tcount\tpval\tobs_over_exp_max\tmax_position\tsample\tstatus" ]):
+            for input_type in ["raw", "cleaned", "aligned_noPCRdup", "unaligned"]:
+                for sample_id, fqc in zip(SAMPLES.keys(), input[input_type]):
+                    shell("""awk -v sample_id={sample_id} -v input_type={input_type} 'BEGIN{{FS=OFS="\t"}} /{stat}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, sample_id, input_type}}' {fqc} | tail -n +2 >> {outpath}""")
+            shell("""sed -i "1i {header}" {outpath}""")
+
+rule plot_fastqc_summary:
+    input:
+        seq_len_dist = 'qual_ctrl/fastqc/sequence_length_distribution.tsv',
+        per_tile = 'qual_ctrl/fastqc/per_tile_quality.tsv',
+        per_base_qual = 'qual_ctrl/fastqc/per_base_quality.tsv',
+        per_base_seq = 'qual_ctrl/fastqc/per_base_sequence_content.tsv',
+        per_base_n = 'qual_ctrl/fastqc/per_base_n.tsv',
+        per_seq_gc = 'qual_ctrl/fastqc/per_sequence_gc.tsv',
+        per_seq_qual = 'qual_ctrl/fastqc/per_sequence_quality.tsv',
+        adapter_content = 'qual_ctrl/fastqc/adapter_content.tsv',
+        seq_dup = 'qual_ctrl/fastqc/sequence_duplication_levels.tsv',
+        kmer = 'qual_ctrl/fastqc/kmer_content.tsv'
+    output:
+        seq_len_dist = 'qual_ctrl/fastqc/sequence_length_distribution.svg',
+        per_tile = 'qual_ctrl/fastqc/per_tile_quality.svg',
+        per_base_qual = 'qual_ctrl/fastqc/per_base_quality.svg',
+        per_base_seq = 'qual_ctrl/fastqc/per_base_sequence_content.svg',
+        per_seq_gc = 'qual_ctrl/fastqc/per_sequence_gc.svg',
+        per_seq_qual = 'qual_ctrl/fastqc/per_sequence_quality.svg',
+        adapter_content = 'qual_ctrl/fastqc/adapter_content.svg',
+        seq_dup = 'qual_ctrl/fastqc/sequence_duplication_levels.svg',
+        kmer = 'qual_ctrl/fastqc/kmer_content.svg',
+    script: "scripts/fastqc_summary.R"
 
 #align to combined genome with Tophat2 (single genome only if no samples have spike-ins), WITHOUT reference transcriptome (i.e., the -G gff)
 #(because we don't always have a reference gff and it doesn't make much difference)
@@ -130,7 +202,9 @@ rule align:
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".rev.{num}.bt2", num=[1,2]) if sisamples else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".rev.{num}.bt2", num=[1,2]),
         fastq = "fastq/cleaned/{sample}-clean.fastq.gz"
     output:
-        "alignment/{sample}/accepted_hits.bam"
+        aligned = "alignment/{sample}/accepted_hits.bam",
+        unaligned = "alignment/{sample}/unmapped.bam",
+        summary = "alignment/{sample}/align_summary.txt",
     params:
         idx_path = config["tophat2"]["bowtie2-index-path"],
         basename = config["combinedgenome"]["name"] if sisamples else config["genome"]["name"],
@@ -179,6 +253,31 @@ rule remove_PCR_duplicates:
     shell: """
         (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
         """
+
+rule read_processing_numbers:
+    input:
+        adapter = expand("logs/clean_reads/clean_reads-{sample}.log", sample=SAMPLES),
+        align = expand("alignment/{sample}/align_summary.txt", sample=SAMPLES),
+        nodups = expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES)
+    output:
+        "qual_ctrl/read_processing_summary.tsv"
+    log: "logs/read_processing_summary.log"
+    run:
+        shell("""(echo -e "sample\traw\tcleaned\tmapped\tunique_map\tnoPCRdup" > {output}) &> {log}""")
+        for sample, adapter, align, nodups in zip(SAMPLES.keys(), input.adapter, input.align, input.nodups):
+            shell("""(grep -e "Total reads processed:" -e "Reads written" {adapter} | cut -d: -f2 | sed 's/,//g' | awk 'BEGIN{{ORS="\t"; print "{sample}"}}{{print $1}}' >> {output}) &> {log}""")
+            shell("""(awk 'BEGIN{{ORS="\t"}} NR==3 || NR==4{{print $3}}' {align} >> {output}) &> {log}""")
+            shell("""(samtools view -c {nodups} | awk '{{print $1}}' >> {output}) &> {log}""")
+        shell("""(awk 'BEGIN{{FS=OFS="\t"}} NR==1; NR>1{{$6=$5-$6; print $0}}' {output} > qual_ctrl/.readnumbers.temp; mv qual_ctrl/.readnumbers.temp {output}) &> {log}""")
+
+rule plot_read_processing:
+    input:
+        "qual_ctrl/read_processing_summary.tsv"
+    output:
+        surv_abs_out = "qual_ctrl/read_processing-survival-absolute.svg",
+        surv_rel_out = "qual_ctrl/read_processing-survival-relative.svg",
+        loss_out  = "qual_ctrl/read_processing-loss.svg",
+    script: "scripts/processing_summary.R"
 
 rule get_coverage:
     input:
@@ -348,7 +447,8 @@ rule deeptools_matrix:
         bw = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bw",
     output:
         dtfile = temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.mat.gz"),
-        matrix = temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv")
+        matrix = temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv"),
+        matrix_gz = "datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv.gz"
     params:
         refpoint = lambda wildcards: config["annotations"][wildcards.annotation]["refpoint"],
         upstream = lambda wildcards: config["annotations"][wildcards.annotation]["upstream"] + config["annotations"][wildcards.annotation]["binsize"],
@@ -361,18 +461,9 @@ rule deeptools_matrix:
     log: "logs/deeptools/computeMatrix-{annotation}-{sample}-{norm}-{readtype}-{strand}.log"
     run:
         if config["annotations"][wildcards.annotation]["nan_afterend"]=="y":
-            shell("(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --nanAfterEnd --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}) &> {log}")
+            shell("(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --nanAfterEnd --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}; pigz -fk {output.matrix}) &> {log}")
         else:
-            shell("(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}) &> {log}")
-
-rule gzip_deeptools_matrix:
-    input:
-        matrix = "datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv"
-    output:
-        "datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv.gz"
-    shell: """
-        pigz -f {input}
-        """
+            shell("(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}; pigz -fk {output.matrix}) &> {log}")
 
 rule melt_matrix:
     input:
@@ -405,72 +496,21 @@ rule r_datavis:
         heatmap_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}-{readtype}-{strand}-heatmap-bygroup.svg"
     params:
         samplelist = plotcorrsamples,
-        binsize = lambda wildcards : config["annotations"][wildcards.annotation]["binsize"],
         upstream = lambda wildcards : config["annotations"][wildcards.annotation]["upstream"],
         dnstream = lambda wildcards : config["annotations"][wildcards.annotation]["dnstream"],
         pct_cutoff = lambda wildcards : config["annotations"][wildcards.annotation]["pct_cutoff"],
+        cluster = lambda wildcards : config["annotations"][wildcards.annotation]["cluster"],
+        nclust = lambda wildcards: config["annotations"][wildcards.annotation]["nclusters"],
         heatmap_cmap = lambda wildcards : config["annotations"][wildcards.annotation]["heatmap_colormap"],
         refpointlabel = lambda wildcards : config["annotations"][wildcards.annotation]["refpointlabel"],
         ylabel = lambda wildcards : config["annotations"][wildcards.annotation]["ylabel"]
     script:
         "scripts/plotHeatmaps.R"
 
-# rule build_genic_annotation:
+# rule map_counts_to_transcripts:
 #     input:
-#         transcripts = config["genome"]["transcripts"],
-#         orfs = config["genome"]["orf-annotation"],
-#         chrsizes = config["genome"]["chrsizes"]
-#     output:
-#         os.path.dirname(config["genome"]["transcripts"]) + "/" + config["combinedgenome"]["experimental_prefix"] + "genic-regions.bed"
-#     params:
-#         windowsize = config["genic-windowsize"]
-#     log : "logs/build_genic_annotation.log"
-#     shell: """
-#         (python scripts/make_genic_annotation.py -t {input.transcripts} -o {input.orfs} -d {params.windowsize} -g {input.chrsizes} -p {output}) &> {log}
-#         """
-
-# rule build_convergent_annotation:
-#     input:
-#         transcripts = config["genome"]["transcripts"],
-#     output:
-#         os.path.dirname(config["genome"]["transcripts"]) + "/" + config["combinedgenome"]["experimental_prefix"] + "convergent-regions.bed"
-#     params:
-#         max_dist = config["max-convergent-dist"]
-#     log: "logs/build_convergent_annotation.log"
-#     shell: """
-#         (awk -v adist={params.max_dist} 'BEGIN{{FS=OFS="\t"}} $6=="+" {{ if(($3-$2)>adist) print $1, $2, $2+adist, $4, $5, "-" ; else print $0 }} $6=="-" {{if (($3-$2)>adist) print $1, $3-adist, $3, $4, $5, "+"; else print $0}}' {input.transcripts} > {output}) &> {log}
-#         """
-
-# rule build_divergent_annotation:
-#     input:
-#         transcripts = config["genome"]["transcripts"],
-#         chrsizes = config["genome"]["chrsizes"]
-#     output:
-#         os.path.dirname(config["genome"]["transcripts"]) + "/" + config["combinedgenome"]["experimental_prefix"] + "divergent-regions.bed"
-#     params:
-#         max_dist = config["max-divergent-dist"]
-#     log: "logs/build_divergent_annotation.log"
-#     shell: """
-#         (bedtools flank -l {params.max_dist} -r 0 -s -i {input.transcripts} -g {input.chrsizes} | awk 'BEGIN{{FS=OFS="\t"}} $6=="+"{{print $1, $2, $3, $4, $5, "-"}} $6=="-"{{print $1, $2, $3, $4, $5, "+"}}' > {output}) &> {log}
-#         """
-
-# rule build_intergenic_annotation:
-#     input:
-#         transcripts = config["genome"]["transcripts"],
-#         chrsizes = config["genome"]["chrsizes"]
-#     output:
-#         os.path.dirname(config["genome"]["transcripts"]) + "/" + config["combinedgenome"]["experimental_prefix"] + "intergenic-regions.bed"
-#     params:
-#         genic_up = config["genic-windowsize"]
-#     log: "logs/build_intergenic_annotation.log"
-#     shell: """
-#         (bedtools slop -s -l {params.genic_up} -r 0 -i {input.transcripts} -g <(sort -k1,1 {input.chrsizes}) | sort -k1,1 -k2,2n | bedtools complement -i stdin -g <(sort -k1,1 {input.chrsizes}) > {output}) &> {log}
-#         """
-
-# rule map_counts_to_peaks:
-#     input:
-#         bed = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{type}-peaks.bed",
-#         bg = lambda wildcards: "coverage/counts/" + wildcards.sample + "-netseq-counts-SENSE.bedgraph" if wildcards.type=="exp" else "coverage/sicounts/" + wildcards.sample + "-netseq-sicounts-SENSE.bedgraph"
+#         bed = config["genome"]["transcripts"] if wildcards.type=="exp" else config["genome"]["spikein-transcripts"],
+#         bg = lambda wildcards: "coverage/counts/" + wildcards.sample + "-netseq-counts-5end-SENSE.bedgraph" if wildcards.type=="exp" else "coverage/sicounts/" + wildcards.sample + "-netseq-sicounts-5end-SENSE.bedgraph"
 #     output:
 #         temp("diff_exp/{condition}-v-{control}/{sample}-{type}-allpeakcounts.tsv")
 #     log: "logs/map_counts_to_peaks/map_counts_to_peaks-{condition}-v-{control}-{sample}-{type}.log"
@@ -535,29 +575,6 @@ def getsamples(ctrl, cond):
 #         (tail -n +2 {input} | awk 'BEGIN{{FS=OFS="\t"}}{{print $2, $4, $5, $1, $7":"$11, $3}}' > {output}) &> {log}
 #         """
 
-# rule separate_sig_de:
-#     input:
-#         "diff_exp/{condition}-v-{control}/{category}/{condition}-v-{control}-results-{norm}-all-{category}.tsv"
-#     output:
-#         up = "diff_exp/{condition}-v-{control}/{category}/{condition}-v-{control}-results-{norm}-up-{category}.tsv",
-#         down = "diff_exp/{condition}-v-{control}/{category}/{condition}-v-{control}-results-{norm}-down-{category}.tsv"
-#     params:
-#         fdr = -log10(config["deseq"]["fdr"])
-#     log: "logs/separate_sig_de/separate_sig_de-{condition}-v-{control}-{norm}-{category}.log"
-#     shell: """
-#         awk -v afdr={params.fdr} 'BEGIN{{FS=OFS="\t"}}NR==1{{print > "{output.up}"; print > "{output.down}"}} NR>1 && $7>0 && $8>afdr {{print > "{output.up}"}} NR>1 && $7<0 && $8>afdr {{print > "{output.down}"}}' {input}
-#         """
-
-# rule get_de_category_bed:
-#     input:
-#         "diff_exp/{condition}-v-{control}/{category}/{condition}-v-{control}-results-{norm}-{direction}-{category}.tsv"
-#     output:
-#         "diff_exp/{condition}-v-{control}/{category}/{condition}-v-{control}-results-{norm}-{direction}-{category}.bed"
-#     log: "logs/get_category_bed/get_category_bed-{condition}-v-{control}-{norm}-{direction}-{category}.log"
-#     shell: """
-#         (tail -n +2 {input} | awk 'BEGIN{{FS=OFS="\t"}}{{print $2, $4, $5, $1, $7":"$8, $3}}' | sort -k1,1 -k2,2n  > {output}) &> {log}
-#         """
-
 # rule summarise_de_results:
 #     input:
 #         total = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.tsv",
@@ -575,17 +592,3 @@ def getsamples(ctrl, cond):
 #         maplot = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{norm}-diffexp-maplot.svg",
 #         volcano = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{norm}-diffexp-volcano.svg",
 #     script: "scripts/de_summary.R"
-
-# rule genic_v_class:
-#     input:
-#         genic = "diff_exp/{condition}-v-{control}/genic/{condition}-v-{control}-results-{norm}-all-genic.tsv",
-#         intragenic = "diff_exp/{condition}-v-{control}/intragenic/{condition}-v-{control}-results-{norm}-all-intragenic.tsv",
-#         antisense = "diff_exp/{condition}-v-{control}/antisense/{condition}-v-{control}-results-{norm}-all-antisense.tsv",
-#         convergent = "diff_exp/{condition}-v-{control}/convergent/{condition}-v-{control}-results-{norm}-all-convergent.tsv",
-#         divergent = "diff_exp/{condition}-v-{control}/divergent/{condition}-v-{control}-results-{norm}-all-divergent.tsv",
-#     params:
-#         path = "diff_exp/{condition}-v-{control}/genic_v_class/"
-#     output:
-#         figure = "diff_exp/{condition}-v-{control}/genic_v_class/{condition}-v-{control}-{norm}-genic-v-class.svg",
-#         tables = expand("diff_exp/{{condition}}-v-{{control}}/genic_v_class/{{condition}}-v-{{control}}-{{norm}}-genic-v-{ttype}.tsv", ttype=["intragenic", "antisense", "convergent", "divergent"])
-#     script: "scripts/classvgenic.R"
