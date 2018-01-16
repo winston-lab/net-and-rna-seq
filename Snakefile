@@ -327,8 +327,8 @@ rule normalize:
 
 rule get_si_pct:
     input:
-        plmin = expand("coverage/counts/{sample}-tss-counts-plmin.bedgraph", sample=sisamples),
-        SIplmin = expand("coverage/sicounts/{sample}-tss-sicounts-plmin.bedgraph", sample=sisamples)
+        plmin = expand("coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph", sample=sisamples),
+        SIplmin = expand("coverage/sicounts/{sample}-netseq-sicounts-5end-plmin.bedgraph", sample=sisamples)
     params:
         group = [v["group"] for k,v in sisamples.items()]
     output:
