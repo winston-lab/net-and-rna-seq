@@ -312,7 +312,7 @@ rule get_coverage:
 rule normalize:
     input:
         counts = "coverage/counts/{sample}-netseq-counts-{readtype}-{strand}.bedgraph",
-        plmin = lambda wildcards: "coverage/counts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph" if wildcards.norm=="libsizenorm" else "coverage/sicounts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph"
+        plmin = lambda wildcards: "coverage/counts/" + wildcards.sample + "-netseq-counts-5end-plmin.bedgraph" if wildcards.norm=="libsizenorm" else "coverage/sicounts/" + wildcards.sample + "-netseq-sicounts-5end-plmin.bedgraph"
     params:
         scalefactor = lambda wildcards: config["spikein-pct"] if wildcards.norm=="spikenorm" else 1
     output:
