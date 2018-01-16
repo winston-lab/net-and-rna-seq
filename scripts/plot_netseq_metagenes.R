@@ -27,54 +27,54 @@ parser$add_argument('--out6', dest='meta_heatmap_group', type='character')
 
 args = parser$parse_args()
 
-#stat_stepribbon by user 'felasa':
-#https://groups.google.com/forum/?fromgroups=#!topic/ggplot2/9cFWHaH1CPs
-stairstepn <- function( data, direction="hv", yvars="y" ) {
-    direction <- match.arg( direction, c( "hv", "vh" ) )
-    data <- as.data.frame( data )[ order( data$x ), ]
-    n <- nrow( data )
-    
-    if ( direction == "vh" ) {
-        xs <- rep( 1:n, each = 2 )[ -2 * n ]
-        ys <- c( 1, rep( 2:n, each = 2 ) )
-    } else {
-        ys <- rep( 1:n, each = 2 )[ -2 * n ]
-        xs <- c( 1, rep( 2:n, each = 2))
-    }
-    
-    data.frame(
-        x = data$x[ xs ]
-        , data[ ys, yvars, drop=FALSE ]
-        , data[ xs, setdiff( names( data ), c( "x", yvars ) ), drop=FALSE ]
-    ) 
-}
-
-stat_stepribbon <- 
-    function(mapping = NULL, data = NULL, geom = "ribbon", position = "identity", inherit.aes = TRUE) {
-        ggplot2::layer(
-            stat = Stepribbon, mapping = mapping, data = data, geom = geom, 
-            position = position, inherit.aes = inherit.aes
-        )
-    }
-
-Stepribbon <- 
-    ggproto("stepribbon", Stat,
-            compute_group = function(., data, scales, direction = "hv", yvars = c( "ymin", "ymax" ), ...) {
-                stairstepn( data = data, direction = direction, yvars = yvars )
-            },                        
-            required_aes = c( "x", "ymin", "ymax" )
-    )
-
-format_xaxis = function(refptlabel, upstream, dnstream){
-    function(x){
-        if (first(upstream)>500 | first(dnstream)>500){
-            return(if_else(x==0, refptlabel, as.character(x)))    
-        }    
-        else {
-            return(if_else(x==0, refptlabel, as.character(x*1000)))
-        }
-    }
-}
+##stat_stepribbon by user 'felasa':
+##https://groups.google.com/forum/?fromgroups=#!topic/ggplot2/9cFWHaH1CPs
+#stairstepn <- function( data, direction="hv", yvars="y" ) {
+#    direction <- match.arg( direction, c( "hv", "vh" ) )
+#    data <- as.data.frame( data )[ order( data$x ), ]
+#    n <- nrow( data )
+#    
+#    if ( direction == "vh" ) {
+#        xs <- rep( 1:n, each = 2 )[ -2 * n ]
+#        ys <- c( 1, rep( 2:n, each = 2 ) )
+#    } else {
+#        ys <- rep( 1:n, each = 2 )[ -2 * n ]
+#        xs <- c( 1, rep( 2:n, each = 2))
+#    }
+#    
+#    data.frame(
+#        x = data$x[ xs ]
+#        , data[ ys, yvars, drop=FALSE ]
+#        , data[ xs, setdiff( names( data ), c( "x", yvars ) ), drop=FALSE ]
+#    ) 
+#}
+#
+#stat_stepribbon <- 
+#    function(mapping = NULL, data = NULL, geom = "ribbon", position = "identity", inherit.aes = TRUE) {
+#        ggplot2::layer(
+#            stat = Stepribbon, mapping = mapping, data = data, geom = geom, 
+#            position = position, inherit.aes = inherit.aes
+#        )
+#    }
+#
+#Stepribbon <- 
+#    ggproto("stepribbon", Stat,
+#            compute_group = function(., data, scales, direction = "hv", yvars = c( "ymin", "ymax" ), ...) {
+#                stairstepn( data = data, direction = direction, yvars = yvars )
+#            },                        
+#            required_aes = c( "x", "ymin", "ymax" )
+#    )
+#
+#format_xaxis = function(refptlabel, upstream, dnstream){
+#    function(x){
+#        if (first(upstream)>500 | first(dnstream)>500){
+#            return(if_else(x==0, refptlabel, as.character(x)))    
+#        }    
+#        else {
+#            return(if_else(x==0, refptlabel, as.character(x*1000)))
+#        }
+#    }
+#}
 
 theme_default = theme_light() +
     theme(text = element_text(size=12, color="black", face="bold"),
@@ -117,17 +117,16 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
 
     meta = function(df){
         metagene_base = ggplot(data = df, aes(x=position, y=mean, ymin = mean-1.96*sem,
-                                    ymax=mean+1.96*sem, alpha=0.8)) +
+                                    ymax=mean+1.96*sem)) +
         geom_vline(xintercept = c(0, scaled_length/1000), size=1, color="grey65")
         if(type=="scaled"){
             metagene_base = metagene_base +
                 geom_vline(xintercept=scaled_length/1000, size=1, color="grey65")
         }
         metagene_base = metagene_base +
-            stat_stepribbon() +
-            geom_step(alpha=1, color="#114477") +
-            scale_alpha(guide=FALSE) +
-            ylab("normalized counts") +
+            geom_ribbon(fill="#114477", alpha=0.4, size=0) +
+            geom_line(color="#114477", alpha=0.9) +
+            scale_y_continuous(limits=c(0, NA), "normalized counts") +
             ggtitle(paste("mean", strand, "NET-seq signal"),
                     subtitle = paste(nindices, ylabel)) +
             theme_default
@@ -136,14 +135,13 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
     meta_overlay = function(df){
         metagene_base = ggplot(data = df,
                       aes(x=position, y=mean, ymin = mean-1.96*sem,
-                          ymax=mean+1.96*sem, alpha=0.8, fill=group)) +
+                          ymax=mean+1.96*sem, fill=group)) +
         geom_vline(xintercept = c(0, scaled_length/1000), size=1, color="grey65")
         if(type=="scaled"){
             metagene_base = metagene_base +
                 geom_vline(xintercept=scaled_length/1000, size=1, color="grey65")
         }
         metagene_base = metagene_base +
-            scale_alpha(guide=FALSE) +
             scale_fill_ptol(name=NULL) +
             scale_color_ptol(name=NULL) +
             scale_x_continuous(breaks=c(0, (scaled_length/2)/1000, scaled_length/1000),
@@ -151,7 +149,7 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
                                name="scaled distance",
                                limits = c(-upstream/1000, (dnstream+scaled_length)/1000),
                                expand=c(0,0)) +
-            ylab("normalized counts") +
+            scale_y_continuous(limits=c(0, NA), name="normalized counts") +
             ggtitle(paste("mean", strand, "NET-seq signal"),
                     subtitle = paste(nindices, ylabel)) +
             theme_default +
@@ -169,7 +167,7 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
                                name="scaled distance",
                                limits = c(-upstream/1000, (dnstream+scaled_length)/1000),
                                expand=c(0,0)) +
-            scale_y_continuous(breaks=0,expand=c(0,0), name=NULL) +
+            scale_y_continuous(breaks=0, expand=c(0,0), name=NULL) +
             ggtitle(paste("mean", strand, "NET-seq signal"),
                     subtitle = paste(nindices, ylabel)) +
             theme_default +
@@ -209,8 +207,8 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
     rm(meta_sample)
     
     meta_sample_overlay = meta_overlay(df_sample) +
-        stat_stepribbon(aes(group=sample)) +
-        geom_step(aes(group=sample, color=group),alpha=1)
+        geom_ribbon(aes(group=sample), alpha=0.3, size=0) +
+        geom_line(aes(group=sample, color=sample), alpha=0.9)
     ggsave(meta_sample_overlay_out, plot=meta_sample_overlay,
            height=8, width=14, units="cm")
     rm(meta_sample_overlay)
@@ -233,8 +231,8 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
     rm(meta_group_out)
     
     meta_group_overlay = meta_overlay(df_group) +
-        stat_stepribbon(aes(group=group)) +
-        geom_step(aes(group=group, color=group),alpha=1)
+        geom_ribbon(aes(group=group), alpha=0.3, size=0) +
+        geom_line(aes(group=group, color=group), alpha=0.9)
     ggsave(meta_group_overlay_out, plot=meta_group_overlay,
            height=8, width=14, units="cm")
     rm(meta_group_overlay)
