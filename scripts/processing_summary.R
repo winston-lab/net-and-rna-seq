@@ -8,7 +8,7 @@ survival_plot = function(df, scalefactor, ylabel){
         geom_step(direction="vh", position=position_nudge(x=0.5),
                   color="#114477", size=0.8) +
         scale_x_continuous(expand=c(0,0), breaks=2:6, name=NULL,
-                           labels=c("raw reads", "reads_cleaned",
+                           labels=c("raw reads", "reads cleaned",
                                     "aligned", "uniquely aligned", "PCR duplicates removed")) +
         scale_y_continuous(sec.axis=dup_axis(), name=ylabel) +
         facet_grid(sample~., switch="y") +
