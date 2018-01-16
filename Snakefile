@@ -23,6 +23,10 @@ NORMS = ["libsizenorm", "spikenorm"] if sisamples else ["libsizenorm"]
 
 localrules:
     all,
+    fastqc_aggregate,
+    get_si_pct, plot_si_pct,
+    make_stranded_genome, make_stranded_annotations,
+    cat_matrices
 
 rule all:
     input:
@@ -34,12 +38,15 @@ rule all:
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=NORMS+COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         #quality control
         "qual_ctrl/read_processing-loss.svg",
+        expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if sisamples else [],
         # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
         #datavis
         # expand("datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz", annotation=config["annotations"], norm=NORMS, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]),
-        # expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) + expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]) if sisamples else expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}-{{readtype}}-{{strand}}-heatmap-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"])
+        expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]) +
+        expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]) if sisamples else
+        expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]),
 
 def plotcorrsamples(wildcards):
     dd = SAMPLES if wildcards.status=="all" else PASSING
@@ -151,7 +158,7 @@ rule fastqc_aggregate:
         "sequence\tcount\tpval\tobs_over_exp_max\tmax_position\tsample\tstatus" ]):
             for input_type in ["raw", "cleaned", "aligned_noPCRdup", "unaligned"]:
                 for sample_id, fqc in zip(SAMPLES.keys(), input[input_type]):
-                    shell("""awk -v sample_id={sample_id} -v input_type={input_type} 'BEGIN{{FS=OFS="\t"}} /{stat}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, sample_id, input_type}}' {fqc} | tail -n +2 >> {outpath}""")
+                    shell("""awk 'BEGIN{{FS=OFS="\t"}} /{stat}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, "{sample_id}", "{input_type}"}}' {fqc} | tail -n +2 >> {outpath}""")
             shell("""sed -i "1i {header}" {outpath}""")
 
 rule plot_fastqc_summary:
@@ -317,40 +324,31 @@ rule normalize:
         (bash scripts/libsizenorm.sh {input.plmin} {input.counts} {params.scalefactor} > {output.normalized}) &> {log}
         """
 
-# rule get_si_pct:
-#     input:
-#         plmin = "coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph",
-#         SIplmin = "coverage/sicounts/{sample}-netseq-counts-5end-plmin.bedgraph"
-#     output:
-#         temp("qual_ctrl/all/{sample}-spikeincounts.tsv")
-#     params:
-#         group = lambda wildcards: SAMPLES[wildcards.sample]["group"]
-#     log: "logs/get_si_pct/get_si_pct-{sample}.log"
-#     shell: """
-#         (echo -e "{wildcards.sample}\t{params.group}\t" $(awk 'BEGIN{{FS=OFS="\t"; ex=0; si=0}}{{if(NR==FNR){{si+=$4}} else{{ex+=$4}}}} END{{print ex+si, ex, si}}' {input.SIplmin} {input.plmin}) > {output}) &> {log}
-#         """
+rule get_si_pct:
+    input:
+        plmin = expand("coverage/counts/{sample}-tss-counts-plmin.bedgraph", sample=sisamples),
+        SIplmin = expand("coverage/sicounts/{sample}-tss-sicounts-plmin.bedgraph", sample=sisamples)
+    params:
+        group = [v["group"] for k,v in sisamples.items()]
+    output:
+        "qual_ctrl/all/spikein-counts.tsv"
+    log: "logs/get_si_pct.log"
+    run:
+        shell("rm -f {output}")
+        for name, exp, si, g in zip(sisamples.keys(), input.plmin, input.SIplmin, params.group):
+            shell("""(echo -e "{name}\t{g}\t" $(awk 'BEGIN{{FS=OFS="\t"; ex=0; si=0}}{{if(NR==FNR){{si+=$4}} else{{ex+=$4}}}} END{{print ex+si, ex, si}}' {si} {exp}) >> {output}) &> {log}""")
 
-# rule cat_si_pct:
-#     input:
-#         expand("qual_ctrl/all/{sample}-spikeincounts.tsv", sample=SAMPLES)
-#     output:
-#         "qual_ctrl/all/spikein-counts.tsv"
-#     log: "logs/cat_si_pct.log"
-#     shell: """
-#         (cat {input} > {output}) &> {log}
-#         """
-
-# rule plot_si_pct:
-#     input:
-#         "qual_ctrl/all/spikein-counts.tsv"
-#     output:
-#         plot = "qual_ctrl/{status}/{status}-spikein-plots.svg",
-#         stats = "qual_ctrl/{status}/{status}-spikein-stats.tsv"
-#     params:
-#         samplelist = lambda wildcards : [k for k,v in SAMPLES.items() if v["spikein"]=="y"] if wildcards.status=="all" else [k for k,v in PASSING.items() if v["spikein"]=="y"],
-#         conditions = config["comparisons"]["spikenorm"]["conditions"],
-#         controls = config["comparisons"]["spikenorm"]["controls"],
-#     script: "scripts/plotsipct.R"
+rule plot_si_pct:
+    input:
+        "qual_ctrl/all/spikein-counts.tsv"
+    output:
+        plot = "qual_ctrl/{status}/{status}-spikein-plots.svg",
+        stats = "qual_ctrl/{status}/{status}-spikein-stats.tsv"
+    params:
+        samplelist = lambda wildcards : [k for k,v in sisamples.items() if v["spikein"]=="y"] if wildcards.status=="all" else [k for k,v in sipassing.items() if v["spikein"]=="y"],
+        conditions = config["comparisons"]["spikenorm"]["conditions"],
+        controls = config["comparisons"]["spikenorm"]["controls"],
+    script: "scripts/plotsipct.R"
 
 rule make_stranded_genome:
     input:
@@ -406,7 +404,7 @@ rule plotcorrelations:
     output:
         "qual_ctrl/{status}/{condition}-v-{control}-netseq-{status}-window-{windowsize}-{norm}-correlations.svg"
     params:
-        pcount = 0.1,
+        pcount = lambda wildcards: 0.1*int(wildcards.windowsize),
         samplelist = plotcorrsamples
     script:
         "scripts/plotcorr.R"
@@ -449,38 +447,42 @@ rule deeptools_matrix:
         dtfile = temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.mat.gz"),
         matrix = temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv"),
         matrix_gz = "datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv.gz"
+
+rule compute_matrix:
+    input:
+        annotation = lambda wildcards: os.path.dirname(config["annotations"][wildcards.annotation]["path"]) + "/stranded/" + wildcards.annotation + "-STRANDED" + os.path.splitext(config["annotations"][wildcards.annotation]["path"])[1],
+        bw = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bw"
+    output:
+        dtfile = temp("datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.mat.gz"),
+        matrix = temp("datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.tsv"),
+        melted = "datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}-melted.tsv.gz"
     params:
-        refpoint = lambda wildcards: config["annotations"][wildcards.annotation]["refpoint"],
+        group = lambda wildcards : SAMPLES[wildcards.sample]["group"],
         upstream = lambda wildcards: config["annotations"][wildcards.annotation]["upstream"] + config["annotations"][wildcards.annotation]["binsize"],
         dnstream = lambda wildcards: config["annotations"][wildcards.annotation]["dnstream"] + config["annotations"][wildcards.annotation]["binsize"],
         binsize = lambda wildcards: config["annotations"][wildcards.annotation]["binsize"],
         sort = lambda wildcards: config["annotations"][wildcards.annotation]["sort"],
         sortusing = lambda wildcards: config["annotations"][wildcards.annotation]["sortby"],
-        binstat = lambda wildcards: config["annotations"][wildcards.annotation]["binstat"]
+        binstat = lambda wildcards: config["annotations"][wildcards.annotation]["binstat"],
     threads : config["threads"]
-    log: "logs/deeptools/computeMatrix-{annotation}-{sample}-{norm}-{readtype}-{strand}.log"
+    log: "logs/compute_matrix/compute_matrix-{annotation}_{sample}_{norm}-{strand}.log"
     run:
-        if config["annotations"][wildcards.annotation]["nan_afterend"]=="y":
-            shell("(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --nanAfterEnd --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}; pigz -fk {output.matrix}) &> {log}")
+        if config["annotations"][wildcards.annotation]["type"]=="absolute":
+            refpoint = config["annotations"][wildcards.annotation]["refpoint"]
+            if config["annotations"][wildcards.annotation]["nan_afterend"]=="y":
+                shell("""(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --nanAfterEnd --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}) &> {log}""")
+            else:
+                shell("""(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}) &> {log}""")
         else:
-            shell("(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}; pigz -fk {output.matrix}) &> {log}")
-
-rule melt_matrix:
-    input:
-        matrix = "datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}.tsv.gz"
-    output:
-        temp("datavis/{annotation}/{norm}/{annotation}-{sample}-{norm}-{readtype}-{strand}-melted.tsv.gz")
-    params:
-        refpoint = lambda wildcards: config["annotations"][wildcards.annotation]["refpoint"],
-        group = lambda wildcards : SAMPLES[wildcards.sample]["group"],
-        binsize = lambda wildcards : config["annotations"][wildcards.annotation]["binsize"],
-        upstream = lambda wildcards : config["annotations"][wildcards.annotation]["upstream"],
-    script:
-        "scripts/melt_matrix.R"
+            scaled_length = config["annotations"][wildcards.annotation]["scaled_length"]
+            refpoint = "TSS"
+            shell("""(computeMatrix scale-regions -R {input.annotation} -S {input.bw} -out {output.dtfile} --outFileNameMatrix {output.matrix} -m {scaled_length} -b {params.upstream} -a {params.dnstream} --binSize {params.binsize} --sortRegions {params.sort} --sortUsing {params.sortusing} --averageTypeBins {params.binstat} -p {threads}) &> {log}""")
+        melt_upstream = params.upstream-params.binsize
+        shell("""(Rscript scripts/melt_matrix.R -i {output.matrix} -r {refpoint} --group {params.group} -s {wildcards.sample} -b {params.binsize} -u {melt_upstream} -o {output.melted}) &>> {log}""")
 
 rule cat_matrices:
     input:
-        expand("datavis/{{annotation}}/{{norm}}/{{annotation}}-{sample}-{{norm}}-{{readtype}}-{{strand}}-melted.tsv.gz", sample=SAMPLES)
+        expand("datavis/{{annotation}}/{{norm}}/{{annotation}}_{sample}_{{norm}}-{{readtype}}-{{strand}}-melted.tsv.gz", sample=SAMPLES)
     output:
         "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
     log: "logs/cat_matrices/cat_matrices-{annotation}-{norm}-{readtype}-{strand}.log"
@@ -488,14 +490,15 @@ rule cat_matrices:
         (cat {input} > {output}) &> {log}
         """
 
-rule r_datavis:
+rule plot_heatmaps:
     input:
         matrix = "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
     output:
-        heatmap_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}-{readtype}-{strand}-heatmap-bysample.svg",
-        heatmap_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}-{readtype}-{strand}-heatmap-bygroup.svg"
+        heatmap_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bysample.svg",
+        heatmap_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bygroup.svg"
     params:
         samplelist = plotcorrsamples,
+        mtype = lambda wildcards : config["annotations"][wildcards.annotation]["type"],
         upstream = lambda wildcards : config["annotations"][wildcards.annotation]["upstream"],
         dnstream = lambda wildcards : config["annotations"][wildcards.annotation]["dnstream"],
         pct_cutoff = lambda wildcards : config["annotations"][wildcards.annotation]["pct_cutoff"],
@@ -504,8 +507,41 @@ rule r_datavis:
         heatmap_cmap = lambda wildcards : config["annotations"][wildcards.annotation]["heatmap_colormap"],
         refpointlabel = lambda wildcards : config["annotations"][wildcards.annotation]["refpointlabel"],
         ylabel = lambda wildcards : config["annotations"][wildcards.annotation]["ylabel"]
-    script:
-        "scripts/plotHeatmaps.R"
+    run:
+        if config["annotations"][wildcards.annotation]["type"]=="scaled":
+            scaled_length = config["annotations"][wildcards.annotation]["scaled_length"]
+            endlabel = config["annotations"][wildcards.annotation]["three_prime_label"]
+        else:
+            scaled_length=0
+            endlabel = "HAIL SATAN!"
+        shell("""Rscript scripts/plot_netseq_heatmaps.R -i {input.matrix} -s {params.samplelist} -t {params.mtype} -u {params.upstream} -d {params.dnstream} -c {params.pct_cutoff} -z {params.cluster} -k {params.nclust} -r {params.refpointlabel} -f {wildcards.strand} -l {scaled_length} -e {endlabel} -y {params.ylabel} -m {params.heatmap_cmap} -o {output.heatmap_sample} -p {output.heatmap_group}""")
+
+rule plot_metagenes:
+    input:
+        matrix = "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
+    output:
+        meta_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bysample.svg",
+        meta_sample_overlay = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bysample.svg",
+        meta_heatmap_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bysample.svg",
+        meta_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bygroup.svg",
+        meta_group_overlay = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bygroup.svg",
+        meta_heatmap_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bygroup.svg",
+    params:
+        samplelist = plotcorrsamples,
+        mtype = lambda wildcards : config["annotations"][wildcards.annotation]["type"],
+        upstream = lambda wildcards : config["annotations"][wildcards.annotation]["upstream"],
+        dnstream = lambda wildcards : config["annotations"][wildcards.annotation]["dnstream"],
+        trim_pct = lambda wildcards : config["annotations"][wildcards.annotation]["trim_pct"],
+        refpointlabel = lambda wildcards : config["annotations"][wildcards.annotation]["refpointlabel"],
+        ylabel = lambda wildcards : config["annotations"][wildcards.annotation]["ylabel"]
+    run:
+        if config["annotations"][wildcards.annotation]["type"]=="scaled":
+            scaled_length = config["annotations"][wildcards.annotation]["scaled_length"]
+            endlabel = config["annotations"][wildcards.annotation]["three_prime_label"]
+        else:
+            scaled_length=0
+            endlabel = "HAIL SATAN!"
+        shell("""Rscript scripts/plot_netseq_metagenes.R -i {input.matrix} -s {params.samplelist} -t {params.mtype} -f {wildcards.strand} -u {params.upstream} -d {params.dnstream} -c {params.trim_pct} -r {params.refpointlabel} -l {scaled_length} -e {endlabel} -y {params.ylabel} --out1 {output.meta_sample} --out2 {output.meta_sample_overlay} --out3 {output.meta_heatmap_sample} --out4 {output.meta_group} --out5 {output.meta_group_overlay} --out6 {output.meta_heatmap_group}""")
 
 # rule map_counts_to_transcripts:
 #     input:

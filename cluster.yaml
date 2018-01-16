@@ -80,23 +80,15 @@ bg_to_bw:
     time: 10
     mem: 1000
  
-deeptools_matrix:
+compute_matrix:
     time : 60
     mem : 2000
 
-gzip_deeptools_matrix:
-    time : 20
-    mem : 2000
+plot_heatmaps:
+    time : 30
+    mem : 10000
 
-melt_matrix:
-    time : 20
-    mem : 2000
-
-cat_matrices:
-    time : 20
-    mem : 2000
-
-r_datavis:
+plot_metagenes:
     time : 30
     mem : 10000
 

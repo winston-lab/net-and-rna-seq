@@ -63,10 +63,11 @@ main = function(intable, pcount, samplelist, binsize, outpath){
     }
     
     mat = ggmatrix(plots, nrow=ncol(df), ncol=ncol(df),
-                   title = paste0("NET-seq signal ", binsize, "nt bins"),
+                   title = paste0("NET-seq signal, ", binsize, "nt bins"),
                    xAxisLabels = names(df), yAxisLabels = names(df), switch="both") +
                     theme_light() +
-                    theme(axis.text = element_text(size=9),
+                    theme(plot.title = element_text(size=12, color="black", face="bold"),
+                          axis.text = element_text(size=9),
                           strip.background = element_blank(),
                           strip.text = element_text(size=12, color="black", face="bold"),
                           strip.text.y = element_text(angle=180, hjust=1),

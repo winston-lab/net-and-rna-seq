@@ -7,8 +7,8 @@ survival_plot = function(df, scalefactor, ylabel){
         # geom_hline(aes(yintercept=count/scalefactor), color="grey50", size=0.2) +
         geom_step(direction="vh", position=position_nudge(x=0.5),
                   color="#114477", size=0.8) +
-        scale_x_continuous(expand=c(0,0), breaks=2:7, name=NULL,
-                           labels=c("raw reads", "adapter removed", "quality trimmed",
+        scale_x_continuous(expand=c(0,0), breaks=2:6, name=NULL,
+                           labels=c("raw reads", "reads_cleaned",
                                     "aligned", "uniquely aligned", "PCR duplicates removed")) +
         scale_y_continuous(sec.axis=dup_axis(), name=ylabel) +
         facet_grid(sample~., switch="y") +
@@ -62,7 +62,7 @@ main = function(in_table, surv_abs_out, surv_rel_out, loss_out){
         geom_text(aes(label=round(loss, 2)), size=4) +
         scale_fill_viridis(name="% loss", guide=guide_colorbar(barheight = 10, barwidth=1)) +
         scale_color_viridis(guide=FALSE) +
-        scale_x_discrete(labels = c("adapter removed", "quality trimmed", "aligned",
+        scale_x_discrete(labels = c("reads cleaned", "aligned",
                                     "uniquely aligned", "PCR duplicates removed"),
                          expand=c(0,0), name=NULL) +
         scale_y_continuous(breaks=0, expand=c(0,0), name=NULL) +
