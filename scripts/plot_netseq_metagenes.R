@@ -135,7 +135,7 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
     meta_overlay = function(df){
         metagene_base = ggplot(data = df,
                       aes(x=position, y=mean, ymin = mean-1.96*sem,
-                          ymax=mean+1.96*sem, fill=group)) +
+                          ymax=mean+1.96*sem, fill=group, color=group)) +
         geom_vline(xintercept = c(0, scaled_length/1000), size=1, color="grey65")
         if(type=="scaled"){
             metagene_base = metagene_base +
@@ -208,7 +208,7 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
     
     meta_sample_overlay = meta_overlay(df_sample) +
         geom_ribbon(aes(group=sample), alpha=0.3, size=0) +
-        geom_line(aes(group=sample, color=sample), alpha=0.9)
+        geom_line(aes(group=sample), alpha=0.9)
     ggsave(meta_sample_overlay_out, plot=meta_sample_overlay,
            height=8, width=14, units="cm")
     rm(meta_sample_overlay)
@@ -232,7 +232,7 @@ main = function(intable, samplelist, type, strand, upstream, dnstream, trim_pct,
     
     meta_group_overlay = meta_overlay(df_group) +
         geom_ribbon(aes(group=group), alpha=0.3, size=0) +
-        geom_line(aes(group=group, color=group), alpha=0.9)
+        geom_line(aes(group=group), alpha=0.9)
     ggsave(meta_group_overlay_out, plot=meta_group_overlay,
            height=8, width=14, units="cm")
     rm(meta_group_overlay)

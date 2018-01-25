@@ -51,7 +51,7 @@ bowtie2_build:
     mem : 2000
 
 align:
-    time : 120
+    time : 180
     n : 4
     mem : 8000
 

@@ -456,7 +456,7 @@ rule compute_matrix:
     output:
         dtfile = temp("datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.mat.gz"),
         matrix = temp("datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.tsv"),
-        melted = "datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}-melted.tsv.gz"
+        melted = temp("datavis/{annotation}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}-melted.tsv.gz")
     params:
         group = lambda wildcards : SAMPLES[wildcards.sample]["group"],
         upstream = lambda wildcards: config["annotations"][wildcards.annotation]["upstream"] + config["annotations"][wildcards.annotation]["binsize"],
