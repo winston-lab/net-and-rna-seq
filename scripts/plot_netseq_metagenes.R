@@ -65,16 +65,16 @@ args = parser$parse_args()
 #            required_aes = c( "x", "ymin", "ymax" )
 #    )
 #
-#format_xaxis = function(refptlabel, upstream, dnstream){
-#    function(x){
-#        if (first(upstream)>500 | first(dnstream)>500){
-#            return(if_else(x==0, refptlabel, as.character(x)))    
-#        }    
-#        else {
-#            return(if_else(x==0, refptlabel, as.character(x*1000)))
-#        }
-#    }
-#}
+format_xaxis = function(refptlabel, upstream, dnstream){
+    function(x){
+        if (first(upstream)>500 | first(dnstream)>500){
+            return(if_else(x==0, refptlabel, as.character(x)))    
+        }    
+        else {
+            return(if_else(x==0, refptlabel, as.character(x*1000)))
+        }
+    }
+}
 
 theme_default = theme_light() +
     theme(text = element_text(size=12, color="black", face="bold"),
