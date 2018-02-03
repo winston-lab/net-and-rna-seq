@@ -6,6 +6,7 @@ fastq/*
 logs/*
 logs/cluster/*
 datavis/
+ratios/
 scripts/.snakemake*
 correlations/
 peakcalling/

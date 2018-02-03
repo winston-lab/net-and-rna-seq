@@ -104,6 +104,14 @@ plotcorrelations:
     time : 45 
     mem : 12000
 
+ratio_counts:
+    time: 10
+    mem: 4000
+
+plot_ratios:
+    time: 20
+    mem: 6000
+
 
 # call_de_peaks:
 #     time: 30
