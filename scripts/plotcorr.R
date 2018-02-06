@@ -49,7 +49,7 @@ main = function(intable, pcount, samplelist, binsize, outpath){
                 #all of the colorspace
                 subdf = df %>% select(i,j) %>% gather(xsample, xvalue, -1) %>%
                             gather(ysample, yvalue, -c(2:3)) %>%
-                            filter(!(xvalue < 6*pcount & yvalue < 6*pcount))
+                            filter(!(xvalue < 2*pcount & yvalue < 2*pcount))
                 plot = ggplot(data = subdf, aes(x=xvalue+pcount, y=yvalue+pcount)) +
                             geom_abline(intercept = 0, slope=1, color="grey80", size=.5) +
                             stat_bin_hex(geom="point", aes(color=log10(..count..)), binwidth=c(.04,.04), size=.5, shape=16, stroke=0) +

@@ -42,15 +42,15 @@ rule all:
         "qual_ctrl/read_processing-loss.svg",
         expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if sisamples else [],
         # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
-        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
-        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
         #datavis
         # expand("datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz", annotation=config["annotations"], norm=NORMS, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"]),
-        expand(expand("datavis/{{annotation}}/spikenorm/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]) +
-        expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]) if sisamples else
-        expand(expand("datavis/{{annotation}}/libsizenorm/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]),
+        expand(expand("datavis/{{annotation}}/spikenorm/{condition}-v-{control}/netseq-{{annotation}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]) +
+        expand(expand("datavis/{{annotation}}/libsizenorm/{condition}-v-{control}/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]) if sisamples else
+        expand(expand("datavis/{{annotation}}/libsizenorm/{condition}-v-{control}/netseq-{{annotation}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-{{strand}}-{{plottype}}-bysample.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), annotation=config["annotations"], status=["all","passing"], readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE"], plottype=["heatmap", "metagene"]),
         # expand("ratios/{ratio}/allsamples-{ratio}-{fractype}.tsv.gz", ratio=config["ratios"], fractype=["numerator", "denominator"])
-        expand(expand("ratios/{{ratio}}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"])
+        expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"])
 
 def plotcorrsamples(wildcards):
     dd = SAMPLES if wildcards.status=="all" else PASSING
@@ -406,9 +406,9 @@ rule plotcorrelations:
     input:
         "coverage/{norm}/union-bedgraph-window-{windowsize}-{norm}.tsv.gz",
     output:
-        "qual_ctrl/{status}/{condition}-v-{control}-netseq-{status}-window-{windowsize}-{norm}-correlations.svg"
+        "qual_ctrl/{status}/{condition}-v-{control}/{condition}-v-{control}-netseq-{status}-window-{windowsize}-{norm}-correlations.svg"
     params:
-        pcount = lambda wildcards: 0.1*int(wildcards.windowsize),
+        pcount = lambda wildcards: 0.01*int(wildcards.windowsize),
         samplelist = plotcorrsamples
     script:
         "scripts/plotcorr.R"
@@ -498,8 +498,8 @@ rule plot_heatmaps:
     input:
         matrix = "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
     output:
-        heatmap_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bysample.svg",
-        heatmap_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bygroup.svg"
+        heatmap_sample = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bysample.svg",
+        heatmap_group = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bygroup.svg"
     params:
         samplelist = plotcorrsamples,
         mtype = lambda wildcards : config["annotations"][wildcards.annotation]["type"],
@@ -524,12 +524,12 @@ rule plot_metagenes:
     input:
         matrix = "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
     output:
-        meta_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bysample.svg",
-        meta_sample_overlay = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bysample.svg",
-        meta_heatmap_sample = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bysample.svg",
-        meta_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bygroup.svg",
-        meta_group_overlay = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bygroup.svg",
-        meta_heatmap_group = "datavis/{annotation}/{norm}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bygroup.svg",
+        meta_sample = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bysample.svg",
+        meta_sample_overlay = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bysample.svg",
+        meta_heatmap_sample = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bysample.svg",
+        meta_group = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bygroup.svg",
+        meta_group_overlay = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bygroup.svg",
+        meta_heatmap_group = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bygroup.svg",
     params:
         samplelist = plotcorrsamples,
         mtype = lambda wildcards : config["annotations"][wildcards.annotation]["type"],
@@ -601,8 +601,8 @@ rule plot_ratios:
         numerator = "ratios/{ratio}/allsamples_{ratio}_numerator.tsv.gz",
         denominator = "ratios/{ratio}/allsamples_{ratio}_denominator.tsv.gz",
     output:
-        violin = "ratios/{ratio}/netseq-{ratio}_{status}_{condition}-v-{control}_violin.svg",
-        ecdf = "ratios/{ratio}/netseq-{ratio}_{status}_{condition}-v-{control}_ecdf.svg"
+        violin = "ratios/{ratio}/{condition}-v-{control}/netseq-{ratio}_{status}_{condition}-v-{control}_violin.svg",
+        ecdf = "ratios/{ratio}/{condition}-v-{control}/netseq-{ratio}_{status}_{condition}-v-{control}_ecdf.svg"
     params:
         num_size = lambda wildcards: config["ratios"][wildcards.ratio]["numerator"]["upstream"] + config["ratios"][wildcards.ratio]["numerator"]["dnstream"],
         den_size = lambda wildcards: config["ratios"][wildcards.ratio]["denominator"]["upstream"] + config["ratios"][wildcards.ratio]["denominator"]["dnstream"],
