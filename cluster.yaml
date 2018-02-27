@@ -52,7 +52,7 @@ bowtie2_build:
 
 align:
     time : 180
-    n : 4
+    n : 8
     mem : 8000
 
 select_unique_mappers:
@@ -84,13 +84,9 @@ compute_matrix:
     time : 60
     mem : 2000
 
-plot_heatmaps:
-    time : 30
-    mem : 10000
-
-plot_metagenes:
-    time : 30
-    mem : 10000
+plot_figures:
+    time : 90
+    mem : 16000
 
 map_to_windows:
     time: 15
