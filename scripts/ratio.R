@@ -5,9 +5,9 @@ library(ggthemes)
 main = function(in_numerator, in_denominator, samplelist, num_size, den_size, pcount=1e-3,
                 rlabel, nlabel, dlabel, alabel, violin_out, ecdf_out){
     df = read_tsv(in_numerator,
-                     col_names=c('group', 'sample', 'index', 'position', 'signal')) %>%
+                     col_names=c('group', 'sample', 'annotation', 'index', 'position', 'signal')) %>%
         filter(sample %in% samplelist) %>% 
-        select(-position) %>% 
+        select(-c(annotation, position)) %>% 
         left_join(read_tsv(in_denominator,
                            col_names=c('group', 'sample', 'index', 'position', 'signal')) %>%
                       select(-position) %>% filter(sample %in% samplelist),

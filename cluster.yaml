@@ -109,6 +109,9 @@ plot_ratios:
     mem: 6000
 
 
+direction_counts:
+    time: 30
+    mem: 4000
 # call_de_peaks:
 #     time: 30
 #     mem: 10000

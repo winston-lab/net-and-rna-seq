@@ -29,7 +29,8 @@ localrules:
     get_si_pct, plot_si_pct,
     make_stranded_genome, make_stranded_annotations,
     cat_matrices,
-    make_ratio_annotation, cat_ratio_counts
+    make_ratio_annotation, cat_ratio_counts,
+    cat_direction_counts,
 
 rule all:
     input:
@@ -50,7 +51,8 @@ rule all:
         expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) +
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if sisamples else
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]),
-        expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"])
+        expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
+        expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
 
 def plotcorrsamples(wc):
     dd = SAMPLES if wc.status=="all" else PASSING
@@ -164,13 +166,12 @@ rule fastqc_aggregate:
         'qual_ctrl/fastqc/sequence_length_distribution.tsv',
         'qual_ctrl/fastqc/sequence_duplication_levels.tsv',
         'qual_ctrl/fastqc/adapter_content.tsv',
-        'qual_ctrl/fastqc/kmer_content.tsv'
+        # 'qual_ctrl/fastqc/kmer_content.tsv'
     run:
         shell("rm -f {output}")
         #for each statistic
-        for outpath, stat, header in zip(output, ["Per base sequence quality", "Per tile sequence quality", "Per sequence quality scores", "Per base sequence content", "Per sequence GC content", "Per base N content", "Sequence Length Distribution", "Total Deduplicated Percentage", "Adapter Content", "Kmer Content"], ["base\tmean\tmedian\tlower_quartile\tupper_quartile\tten_pct\tninety_pct\tsample\tstatus", "tile\tbase\tmean\tsample\tstatus",
-        "quality\tcount\tsample\tstatus", "base\tg\ta\tt\tc\tsample\tstatus", "gc_content\tcount\tsample\tstatus", "base\tn_count\tsample\tstatus", "length\tcount\tsample\tstatus", "duplication_level\tpct_of_deduplicated\tpct_of_total\tsample\tstatus", "position\tpct\tsample\tstatus",
-        "sequence\tcount\tpval\tobs_over_exp_max\tmax_position\tsample\tstatus" ]):
+        for outpath, stat, header in zip(output, ["Per base sequence quality", "Per tile sequence quality", "Per sequence quality scores", "Per base sequence content", "Per sequence GC content", "Per base N content", "Sequence Length Distribution", "Total Deduplicated Percentage", "Adapter Content"], ["base\tmean\tmedian\tlower_quartile\tupper_quartile\tten_pct\tninety_pct\tsample\tstatus", "tile\tbase\tmean\tsample\tstatus",
+        "quality\tcount\tsample\tstatus", "base\tg\ta\tt\tc\tsample\tstatus", "gc_content\tcount\tsample\tstatus", "base\tn_count\tsample\tstatus", "length\tcount\tsample\tstatus", "duplication_level\tpct_of_deduplicated\tpct_of_total\tsample\tstatus", "position\tpct\tsample\tstatus"]):
             for input_type in ["raw", "cleaned", "aligned_noPCRdup", "unaligned"]:
                 for sample_id, fqc in zip(SAMPLES.keys(), input[input_type]):
                     shell("""awk 'BEGIN{{FS=OFS="\t"}} /{stat}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, "{sample_id}", "{input_type}"}}' {fqc} | tail -n +2 >> {outpath}""")
@@ -470,7 +471,7 @@ rule compute_matrix:
         scaled_length = lambda wc: 0 if FIGURES[wc.figure]["parameters"]["type"]=="absolute" else FIGURES[wc.figure]["parameters"]["scaled_length"],
         binsize = lambda wc: FIGURES[wc.figure]["parameters"]["binsize"],
         binstat = lambda wc: FIGURES[wc.figure]["parameters"]["binstat"],
-        nan_afterend = lambda wc: [] if FIGURES[wc.figure]["parameters"]["type"]=="scaled" or not FIGURES[wc.figure]["parameters"]["nan_afterend"] else "--nanAfterEnd", 
+        nan_afterend = lambda wc: [] if FIGURES[wc.figure]["parameters"]["type"]=="scaled" or not FIGURES[wc.figure]["parameters"]["nan_afterend"] else "--nanAfterEnd",
         anno_label = lambda wc: FIGURES[wc.figure]["annotations"][wc.annotation]["label"]
     threads : config["threads"]
     log: "logs/compute_matrix/compute_matrix-{figure}_{annotation}_{sample}_{norm}-{strand}.log"
@@ -625,7 +626,7 @@ rule ratio_counts:
     log: "logs/ratio_counts/ratio_counts-{ratio}-{fractype}-{sample}.log"
     shell: """
         (computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize $(echo {params.upstream} + {params.dnstream} | bc) --averageTypeBins sum -p {threads}) &> {log}
-        (Rscript scripts/melt_matrix.R -i {output.matrix} -r TSS --group {params.group} -s {wildcards.sample} -b $(echo {params.upstream} + {params.dnstream} | bc) -u {params.upstream} -o {output.melted}) &>> {log}
+        (Rscript scripts/melt_matrix.R -i {output.matrix} -r TSS --group {params.group} -s {wildcards.sample} -a none -b $(echo {params.upstream} + {params.dnstream} | bc) -u {params.upstream} -o {output.melted}) &>> {log}
         """
 
 rule cat_ratio_counts:
@@ -663,6 +664,36 @@ rule plot_ratios:
         annotation_label = lambda wc: config["ratios"][wc.ratio]["label"]
     script:
         "scripts/ratio.R"
+
+rule direction_counts:
+    input:
+        annotation = lambda wc: os.path.dirname(config["directionality"][wc.annotation]["path"]) + "/stranded/" + wc.annotation + "-STRANDED" + os.path.splitext(config["directionality"][wc.annotation]["path"])[1],
+        bw = "coverage/libsizenorm/{sample}-netseq-libsizenorm-5end-{strand}.bw"
+    output:
+        dtfile = temp("directionality/{annotation}/{annotation}_{sample}-{strand}.mat.gz"),
+        matrix = temp("directionality/{annotation}/{annotation}_{sample}-{strand}.tsv"),
+        melted = temp("directionality/{annotation}/{annotation}_{sample}-{strand}-melted.tsv.gz"),
+    params:
+        group = lambda wc : SAMPLES[wc.sample]["group"],
+        upstream = lambda wc: config["directionality"][wc.annotation]["distance"] if wc.strand=="SENSE" else 0,
+        dnstream = lambda wc: config["directionality"][wc.annotation]["distance"] if wc.strand=="ANTISENSE" else 0,
+        refpoint = lambda wc: config["directionality"][wc.annotation]["refpoint"]
+    threads: config["threads"]
+    log: "logs/direction_counts/direction_counts-{annotation}-{sample}-{strand}.log"
+    shell: """
+        (computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize 1 --averageTypeBins mean -p {threads}) &> {log}
+        (Rscript scripts/melt_matrix.R -i {output.matrix} -r {params.refpoint} --group {params.group} -s {wildcards.sample} -a {wildcards.strand} -b 1 -u {params.upstream} -o {output.melted}) &>> {log}
+        """
+
+rule cat_direction_counts:
+    input:
+        expand("directionality/{{annotation}}/{{annotation}}_{sample}-{strand}-melted.tsv.gz", sample=SAMPLES, strand=["SENSE", "ANTISENSE"])
+    output:
+        "directionality/{annotation}/allsamples_{annotation}.tsv.gz"
+    log: "logs/cat_direction_counts/cat_direction_counts-{annotation}.log"
+    shell: """
+        (cat {input} > {output}) &> {log}
+        """
 
 # rule map_counts_to_transcripts:
 #     input:
