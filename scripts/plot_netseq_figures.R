@@ -315,10 +315,15 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         return(new_grob)
     }
     
+    strip_strand = function(ss){
+        words = str_split(ss, "-")[[1]]
+        return(paste(words[1:length(words)-1], collapse="-"))
+    }
+        
     import = function(path, strand){
         read_tsv(path, col_names=c("group", "sample", "annotation", "index", "position","cpm")) %>%
-            filter((sample %in% samplelist | sample %in% cluster_samples) & !is.na(cpm)) %>% 
-            mutate(strand=strand)
+        mutate(strand=strand) %>%
+        filter((sample %in% samplelist | sample %in% lapply(cluster_samples, strip_strand)) & !is.na(cpm))
     }
     
     df = import(in_paths[1], strand="sense") %>%
