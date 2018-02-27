@@ -30,7 +30,7 @@ localrules:
     make_stranded_genome, make_stranded_annotations,
     cat_matrices,
     make_ratio_annotation, cat_ratio_counts,
-    cat_direction_counts,
+    direction_counts, cat_direction_counts,
 
 rule all:
     input:
@@ -675,14 +675,14 @@ rule direction_counts:
         melted = temp("directionality/{annotation}/{annotation}_{sample}-{strand}-melted.tsv.gz"),
     params:
         group = lambda wc : SAMPLES[wc.sample]["group"],
-        upstream = lambda wc: config["directionality"][wc.annotation]["distance"] if wc.strand=="SENSE" else 0,
-        dnstream = lambda wc: config["directionality"][wc.annotation]["distance"] if wc.strand=="ANTISENSE" else 0,
+        upstream = lambda wc: config["directionality"][wc.annotation]["distance"] + 1 if wc.strand=="ANTISENSE" else 0,
+        dnstream = lambda wc: config["directionality"][wc.annotation]["distance"] + 1 if wc.strand=="SENSE" else 0,
         refpoint = lambda wc: config["directionality"][wc.annotation]["refpoint"]
     threads: config["threads"]
     log: "logs/direction_counts/direction_counts-{annotation}-{sample}-{strand}.log"
     shell: """
         (computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize 1 --averageTypeBins mean -p {threads}) &> {log}
-        (Rscript scripts/melt_matrix.R -i {output.matrix} -r {params.refpoint} --group {params.group} -s {wildcards.sample} -a {wildcards.strand} -b 1 -u {params.upstream} -o {output.melted}) &>> {log}
+        (Rscript scripts/melt_matrix.R -i {output.matrix} -r {params.refpoint} --group {params.group} -s {wildcards.sample} -a {wildcards.strand} -b 1 -u $(echo {params.upstream}-1 | bc) -o {output.melted}) &>> {log}
         """
 
 rule cat_direction_counts:
