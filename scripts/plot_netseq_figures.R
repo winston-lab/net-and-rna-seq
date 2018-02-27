@@ -316,7 +316,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     }
     
     strip_strand = function(ss){
-        words = str_split(ss, "-")[[1]]
+        words = strsplit(ss, "-")[[1]]
         return(paste(words[1:length(words)-1], collapse="-"))
     }
         
