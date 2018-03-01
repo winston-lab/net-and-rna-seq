@@ -30,14 +30,14 @@ localrules:
     make_stranded_genome, make_stranded_annotations,
     cat_matrices,
     make_ratio_annotation, cat_ratio_counts,
-    direction_counts, cat_direction_counts,
+    cat_direction_counts,
 
 rule all:
     input:
         #FastQC
         'qual_ctrl/fastqc/per_base_sequence_content.svg',
         #alignment
-        expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES),
+        expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}-unique.bam", sample=SAMPLES),
         #coverage
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["sicounts","spikenorm"], sample=sisamples, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
@@ -120,7 +120,7 @@ rule remove_molec_barcode:
 
 rule fastqc_cleaned:
     input:
-        "fastq/cleaned/{sample}-clean.fastq.gz"
+        "fastq/cleaned/{sample}-clean.fastq.gz" if config["random-hexamer"] else "fastq/cleaned/{sample}-trim.fastq"
     params:
         adapter = config["cutadapt"]["adapter"]
     output:
@@ -134,7 +134,7 @@ rule fastqc_cleaned:
 
 rule fastqc_aligned:
     input:
-        lambda wc: "alignment/" + wc.sample + "-noPCRdup.bam" if wc.fqtype=="aligned_noPCRdup" else "alignment/" + wc.sample + "/unmapped.bam",
+        lambda wc: "alignment/" + wc.sample + "-noPCRdup.bam" if wc.fqtype=="aligned_noPCRdup" else "alignment/" + wc.sample + "-unique.bam" if wc.fqtype=="aligned" else "alignment/" + wc.sample + "/unmapped.bam",
     params:
         adapter = config["cutadapt"]["adapter"]
     output:
@@ -142,7 +142,7 @@ rule fastqc_aligned:
     threads : config["threads"]
     log: "logs/fastqc/{fqtype}/fastqc-{fqtype}-{sample}.log"
     wildcard_constraints:
-        fqtype="aligned_noPCRdup|unaligned"
+        fqtype="aligned|aligned_noPCRdup|unaligned"
     shell: """
         (mkdir -p qual_ctrl/fastqc/{wildcards.fqtype}) &> {log}
         (bedtools bamtofastq -fq qual_ctrl/fastqc/{wildcards.fqtype}/{wildcards.sample}-{wildcards.fqtype}.fastq -i {input}) &>> {log}
@@ -154,7 +154,7 @@ rule fastqc_aggregate:
     input:
         raw = expand("qual_ctrl/fastqc/raw/{sample}/{fname}/fastqc_data.txt", zip, sample=SAMPLES, fname=[os.path.split(v["fastq"])[1].split(".fastq")[0] + "_fastqc" for k,v in SAMPLES.items()]),
         cleaned = expand("qual_ctrl/fastqc/cleaned/{sample}-clean_fastqc/fastqc_data.txt", sample=SAMPLES),
-        aligned_noPCRdup = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}-aligned_noPCRdup_fastqc/fastqc_data.txt", sample=SAMPLES),
+        aligned = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}-aligned_noPCRdup_fastqc/fastqc_data.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/aligned/{sample}-aligned_fastqc/fastqc_data.txt", sample=SAMPLES),
         unaligned = expand("qual_ctrl/fastqc/unaligned/{sample}-unaligned_fastqc/fastqc_data.txt", sample=SAMPLES),
     output:
         'qual_ctrl/fastqc/per_base_quality.tsv',
@@ -169,10 +169,11 @@ rule fastqc_aggregate:
         # 'qual_ctrl/fastqc/kmer_content.tsv'
     run:
         shell("rm -f {output}")
+        aln = "aligned_noPCRdup" if config["random-hexamer"] else "aligned"
         #for each statistic
         for outpath, stat, header in zip(output, ["Per base sequence quality", "Per tile sequence quality", "Per sequence quality scores", "Per base sequence content", "Per sequence GC content", "Per base N content", "Sequence Length Distribution", "Total Deduplicated Percentage", "Adapter Content"], ["base\tmean\tmedian\tlower_quartile\tupper_quartile\tten_pct\tninety_pct\tsample\tstatus", "tile\tbase\tmean\tsample\tstatus",
         "quality\tcount\tsample\tstatus", "base\tg\ta\tt\tc\tsample\tstatus", "gc_content\tcount\tsample\tstatus", "base\tn_count\tsample\tstatus", "length\tcount\tsample\tstatus", "duplication_level\tpct_of_deduplicated\tpct_of_total\tsample\tstatus", "position\tpct\tsample\tstatus"]):
-            for input_type in ["raw", "cleaned", "aligned_noPCRdup", "unaligned"]:
+            for input_type in ["raw", "cleaned", aln, "unaligned"]:
                 for sample_id, fqc in zip(SAMPLES.keys(), input[input_type]):
                     shell("""awk 'BEGIN{{FS=OFS="\t"}} /{stat}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, "{sample_id}", "{input_type}"}}' {fqc} | tail -n +2 >> {outpath}""")
             shell("""sed -i "1i {header}" {outpath}""")
@@ -223,7 +224,7 @@ rule align:
     input:
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".{num}.bt2", num = [1,2,3,4]) if sisamples else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".{num}.bt2", num = [1,2,3,4]),
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".rev.{num}.bt2", num=[1,2]) if sisamples else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".rev.{num}.bt2", num=[1,2]),
-        fastq = "fastq/cleaned/{sample}-clean.fastq.gz"
+        fastq = "fastq/cleaned/{sample}-clean.fastq.gz" if config["random-hexamer"] else "fastq/cleaned/{sample}-trim.fastq"
     output:
         aligned = "alignment/{sample}/accepted_hits.bam",
         unaligned = "alignment/{sample}/unmapped.bam",
@@ -277,11 +278,12 @@ rule remove_PCR_duplicates:
         (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
         """
 
+#TODO: account for case with no random hexamer correctly
 rule read_processing_numbers:
     input:
         adapter = expand("logs/clean_reads/clean_reads-{sample}.log", sample=SAMPLES),
         align = expand("alignment/{sample}/align_summary.txt", sample=SAMPLES),
-        nodups = expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES)
+        nodups = expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}-unique.bam", sample=SAMPLES)
     output:
         "qual_ctrl/read_processing_summary.tsv"
     log: "logs/read_processing_summary.log"
@@ -304,7 +306,7 @@ rule plot_read_processing:
 
 rule get_coverage:
     input:
-        "alignment/{sample}-noPCRdup.bam"
+        "alignment/{sample}-noPCRdup.bam" if config["random-hexamer"] else "alignment/{sample}-unique.bam"
     params:
         prefix = lambda wc: config["combinedgenome"]["experimental_prefix"] if wc.counttype=="counts" else config["combinedgenome"]["spikein_prefix"]
     output:
