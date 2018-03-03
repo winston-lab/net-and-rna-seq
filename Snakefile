@@ -41,18 +41,17 @@ rule all:
         #coverage
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["sicounts","spikenorm"], sample=sisamples, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
-        #quality control
+        # #quality control
         "qual_ctrl/read_processing-loss.svg",
         expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if sisamples else [],
-        # expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]),
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
-        #datavis
-        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) +
-        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if sisamples else
-        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]),
-        expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
-        expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
+        # #datavis
+        # expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) +
+        # expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if sisamples else
+        # expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]),
+        # expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
+        # expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
 
 def plotcorrsamples(wc):
     dd = SAMPLES if wc.status=="all" else PASSING
@@ -95,7 +94,7 @@ rule clean_reads:
     input:
         lambda wc: SAMPLES[wc.sample]["fastq"]
     output:
-        fq = temp("fastq/cleaned/{sample}-trim.fastq"),
+        fq = "fastq/cleaned/{sample}-trim.fastq",
         log = "logs/clean_reads/clean_reads-{sample}.log"
     params:
         adapter = config["cutadapt"]["adapter"],
@@ -115,16 +114,17 @@ rule remove_molec_barcode:
     log: "logs/remove_molec_barcode/removeMBC-{sample}.log"
     shell: """
         (python scripts/extractMolecularBarcode.py {input} fastq/cleaned/{wildcards.sample}-clean.fastq {output.barcodes} {output.ligation}) &> {log}
+        (rm {input}) &>> {log}
         (pigz -f fastq/cleaned/{wildcards.sample}-clean.fastq) &>> {log}
         """
 
 rule fastqc_cleaned:
     input:
-        "fastq/cleaned/{sample}-clean.fastq.gz" if config["random-hexamer"] else "fastq/cleaned/{sample}-trim.fastq"
+        lambda wc: "fastq/cleaned/" + wc.sample + "-clean.fastq.gz" if wc.fqtype=="clean" else "fastq/cleaned/" + wc.sample + "-trim.fastq"
     params:
         adapter = config["cutadapt"]["adapter"]
     output:
-        "qual_ctrl/fastqc/cleaned/{sample}-clean_fastqc/fastqc_data.txt",
+        "qual_ctrl/fastqc/cleaned/{sample}-{fqtype}_fastqc/fastqc_data.txt",
     threads : config["threads"]
     log: "logs/fastqc/cleaned/fastqc-cleaned-{sample}.log"
     shell: """
@@ -153,7 +153,7 @@ rule fastqc_aligned:
 rule fastqc_aggregate:
     input:
         raw = expand("qual_ctrl/fastqc/raw/{sample}/{fname}/fastqc_data.txt", zip, sample=SAMPLES, fname=[os.path.split(v["fastq"])[1].split(".fastq")[0] + "_fastqc" for k,v in SAMPLES.items()]),
-        cleaned = expand("qual_ctrl/fastqc/cleaned/{sample}-clean_fastqc/fastqc_data.txt", sample=SAMPLES),
+        cleaned = expand("qual_ctrl/fastqc/cleaned/{sample}-clean_fastqc/fastqc_data.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/cleaned/{sample}-trim_fastqc/fastqc_data.txt", sample=SAMPLES),
         aligned = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}-aligned_noPCRdup_fastqc/fastqc_data.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/aligned/{sample}-aligned_fastqc/fastqc_data.txt", sample=SAMPLES),
         unaligned = expand("qual_ctrl/fastqc/unaligned/{sample}-unaligned_fastqc/fastqc_data.txt", sample=SAMPLES),
     output:
@@ -261,7 +261,7 @@ rule select_unique_mappers:
     input:
         "alignment/{sample}/accepted_hits.bam"
     output:
-        temp("alignment/{sample}-unique.bam")
+        "alignment/{sample}-unique.bam"
     threads: config["threads"]
     log: "logs/select_unique_mappers/select_unique_mappers-{sample}.log"
     shell: """
@@ -276,6 +276,7 @@ rule remove_PCR_duplicates:
     log: "logs/remove_PCR_duplicates/removePCRduplicates-{sample}.log"
     shell: """
         (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
+        (rm {input}) &>> {log}
         """
 
 #TODO: account for case with no random hexamer correctly
@@ -545,59 +546,6 @@ rule plot_figures:
         k = lambda wc: [v["n_clusters"] for k,v in FIGURES[wc.figure]["annotations"].items()],
     script:
         "scripts/plot_netseq_figures.R"
-
-# rule plot_heatmaps:
-#     input:
-#         matrix = "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
-#     output:
-#         heatmap_sample = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bysample.svg",
-#         heatmap_group = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-heatmap-bygroup.svg"
-#     params:
-#         samplelist = plotcorrsamples,
-#         mtype = lambda wc : config["annotations"][wc.annotation]["type"],
-#         upstream = lambda wc : config["annotations"][wc.annotation]["upstream"],
-#         dnstream = lambda wc : config["annotations"][wc.annotation]["dnstream"],
-#         pct_cutoff = lambda wc : config["annotations"][wc.annotation]["pct_cutoff"],
-#         cluster = lambda wc : config["annotations"][wc.annotation]["cluster"],
-#         nclust = lambda wc: config["annotations"][wc.annotation]["nclusters"],
-#         heatmap_cmap = lambda wc : config["annotations"][wc.annotation]["heatmap_colormap"],
-#         refpointlabel = lambda wc : config["annotations"][wc.annotation]["refpointlabel"],
-#         ylabel = lambda wc : config["annotations"][wc.annotation]["ylabel"]
-#     run:
-#         if config["annotations"][wc.annotation]["type"]=="scaled":
-#             scaled_length = config["annotations"][wc.annotation]["scaled_length"]
-#             endlabel = config["annotations"][wc.annotation]["three_prime_label"]
-#         else:
-#             scaled_length=0
-#             endlabel = "HAIL SATAN!"
-#         shell("""Rscript scripts/plot_netseq_heatmaps.R -i {input.matrix} -s {params.samplelist} -t {params.mtype} -u {params.upstream} -d {params.dnstream} -c {params.pct_cutoff} -z {params.cluster} -k {params.nclust} -r {params.refpointlabel} -f {wildcards.strand} -l {scaled_length} -e {endlabel} -y {params.ylabel} -m {params.heatmap_cmap} -o {output.heatmap_sample} -p {output.heatmap_group}""")
-
-# rule plot_metagenes:
-#     input:
-#         matrix = "datavis/{annotation}/{norm}/allsamples-{annotation}-{norm}-{readtype}-{strand}.tsv.gz"
-#     output:
-#         meta_sample = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bysample.svg",
-#         meta_sample_overlay = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bysample.svg",
-#         meta_heatmap_sample = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bysample.svg",
-#         meta_group = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-bygroup.svg",
-#         meta_group_overlay = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metagene-overlay-bygroup.svg",
-#         meta_heatmap_group = "datavis/{annotation}/{norm}/{condition}-v-{control}/netseq-{annotation}-{norm}-{status}_{condition}-v-{control}_{readtype}-{strand}-metaheatmap-bygroup.svg",
-#     params:
-#         samplelist = plotcorrsamples,
-#         mtype = lambda wc : config["annotations"][wc.annotation]["type"],
-#         upstream = lambda wc : config["annotations"][wc.annotation]["upstream"],
-#         dnstream = lambda wc : config["annotations"][wc.annotation]["dnstream"],
-#         trim_pct = lambda wc : config["annotations"][wc.annotation]["trim_pct"],
-#         refpointlabel = lambda wc : config["annotations"][wc.annotation]["refpointlabel"],
-#         ylabel = lambda wc : config["annotations"][wc.annotation]["ylabel"]
-#     run:
-#         if config["annotations"][wc.annotation]["type"]=="scaled":
-#             scaled_length = config["annotations"][wc.annotation]["scaled_length"]
-#             endlabel = config["annotations"][wc.annotation]["three_prime_label"]
-#         else:
-#             scaled_length=0
-#             endlabel = "HAIL SATAN!"
-#         shell("""Rscript scripts/plot_netseq_metagenes.R -i {input.matrix} -s {params.samplelist} -t {params.mtype} -f {wildcards.strand} -u {params.upstream} -d {params.dnstream} -c {params.trim_pct} -r {params.refpointlabel} -l {scaled_length} -e {endlabel} -y {params.ylabel} --out1 {output.meta_sample} --out2 {output.meta_sample_overlay} --out3 {output.meta_heatmap_sample} --out4 {output.meta_group} --out5 {output.meta_group_overlay} --out6 {output.meta_heatmap_group}""")
 
 rule make_ratio_annotation:
     input:
