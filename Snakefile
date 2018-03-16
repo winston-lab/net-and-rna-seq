@@ -31,6 +31,7 @@ localrules:
     cat_matrices,
     make_ratio_annotation, cat_ratio_counts,
     cat_direction_counts,
+    map_counts_to_transcripts, get_transcript_counts,
 
 rule all:
     input:
@@ -47,11 +48,12 @@ rule all:
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
         expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
         # #datavis
-        # expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) +
-        # expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if sisamples else
-        # expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]),
-        # expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
+        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) +
+        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if sisamples else
+        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]),
+        expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
         # expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
+        expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups) + expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if sisamples else expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups)
 
 def plotcorrsamples(wc):
     dd = SAMPLES if wc.status=="all" else PASSING
@@ -645,88 +647,54 @@ rule cat_direction_counts:
         (cat {input} > {output}) &> {log}
         """
 
-# rule map_counts_to_transcripts:
-#     input:
-#         bed = config["genome"]["transcripts"] if wc.type=="exp" else config["genome"]["spikein-transcripts"],
-#         bg = lambda wc: "coverage/counts/" + wc.sample + "-netseq-counts-5end-SENSE.bedgraph" if wc.type=="exp" else "coverage/sicounts/" + wc.sample + "-netseq-sicounts-5end-SENSE.bedgraph"
-#     output:
-#         temp("diff_exp/{condition}-v-{control}/{sample}-{type}-allpeakcounts.tsv")
-#     log: "logs/map_counts_to_peaks/map_counts_to_peaks-{condition}-v-{control}-{sample}-{type}.log"
-#     shell: """
-#         (bedtools map -a {input.bed} -b {input.bg} -c 4 -o sum | awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-"$2"-"$3, $4}}' &> {output}) &> {log}
-#         """
+rule map_counts_to_transcripts:
+    input:
+        bed = lambda wc: config["genome"]["transcripts"] if wc.type=="exp" else config["genome"]["spikein-transcripts"],
+        bg = lambda wc: "coverage/counts/" + wc.sample + "-netseq-counts-5end-SENSE.bedgraph" if wc.type=="exp" else "coverage/sicounts/" + wc.sample + "-netseq-sicounts-5end-SENSE.bedgraph"
+    output:
+        temp("diff_exp/{condition}-v-{control}/{sample}-{type}-alltranscriptcounts.tsv")
+    log: "logs/map_counts_to_transcripts/map_counts_to_transcripts-{condition}-v-{control}-{sample}-{type}.log"
+    shell: """
+        (bash scripts/makeStrandedBed.sh {input.bed} | LC_COLLATE=C sort -k1,1 -k2,2n | bedtools map -a stdin -b {input.bg} -c 4 -o sum | awk 'BEGIN{{FS=OFS="\t"}}{{print $4"~"$1"~"$2"~"$3, $7}}' &> {output}) &> {log}
+        """
 
 def getsamples(ctrl, cond):
     return [k for k,v in PASSING.items() if (v["group"]==ctrl or v["group"]==cond)]
 
-# rule get_peak_counts:
-#     input:
-#         lambda wc : ["diff_exp/" + wc.condition + "-v-" + wc.control + "/" + x + "-" + wc.type + "-allpeakcounts.tsv" for x in getsamples(wc.control, wc.condition)]
-#     output:
-#         "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{type}-peak-counts.tsv"
-#     params:
-#         n = lambda wc: 2*len(getsamples(wc.control, wc.condition)),
-#         names = lambda wc: "\t".join(getsamples(wc.control, wc.condition))
-#     log: "logs/get_peak_counts/get_peak_counts-{condition}-v-{control}-{type}.log"
-#     shell: """
-#         (paste {input} | cut -f$(paste -d, <(echo "1") <(seq -s, 2 2 {params.n})) | cat <(echo -e "name\t" "{params.names}" ) - > {output}) &> {log}
-#         """
+rule get_transcript_counts:
+    input:
+        lambda wc : ["diff_exp/" + wc.condition + "-v-" + wc.control + "/" + x + "-" + wc.type + "-alltranscriptcounts.tsv" for x in getsamples(wc.control, wc.condition)]
+    output:
+        "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{type}-transcript-counts.tsv"
+    params:
+        n = lambda wc: 2*len(getsamples(wc.control, wc.condition)),
+        names = lambda wc: "\t".join(getsamples(wc.control, wc.condition))
+    log: "logs/get_transcript_counts/get_transcript_counts-{condition}-v-{control}-{type}.log"
+    shell: """
+        (paste {input} | cut -f$(paste -d, <(echo "1") <(seq -s, 2 2 {params.n})) | cat <(echo -e "name\t" "{params.names}" ) - > {output}) &> {log}
+        """
 
-# rule call_de_peaks:
-#     input:
-#         expcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-exp-peak-counts.tsv",
-#         sicounts = lambda wc: "diff_exp/" + wc.condition + "-v-" + wc.control + "/" + wc.condition + "-v-" + wc.control + "-si-peak-counts.tsv" if wc.norm=="spikenorm" else "diff_exp/" + wc.condition + "-v-" + wc.control + "/" + wc.condition + "-v-" + wc.control + "-exp-peak-counts.tsv"
-#     params:
-#         samples = lambda wc : getsamples(wc.control, wc.condition),
-#         groups = lambda wc : [PASSING[x]["group"] for x in getsamples(wc.control, wc.condition)],
-#         alpha = config["deseq"]["fdr"],
-#         lfc = log2(config["deseq"]["fold-change-threshold"])
-#     output:
-#         results = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.tsv",
-#         #need to write out norm counts here or just in the total qc?
-#         normcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-counts-sfnorm-{norm}.tsv",
-#         rldcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-counts-rlog-{norm}.tsv",
-#         qcplots = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-qcplots-{norm}.svg"
-#     script:
-#         "scripts/call_de_peaks.R"
+rule call_de_transcripts:
+    input:
+        expcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-exp-transcript-counts.tsv",
+        sicounts = lambda wc: "diff_exp/" + wc.condition + "-v-" + wc.control + "/" + wc.condition + "-v-" + wc.control + "-si-transcript-counts.tsv" if wc.norm=="spikenorm" else "diff_exp/" + wc.condition + "-v-" + wc.control + "/" + wc.condition + "-v-" + wc.control + "-exp-transcript-counts.tsv"
+    params:
+        samples = lambda wc : getsamples(wc.control, wc.condition),
+        groups = lambda wc : [PASSING[x]["group"] for x in getsamples(wc.control, wc.condition)],
+        alpha = config["deseq"]["fdr"],
+        lfc = log2(config["deseq"]["fold-change-threshold"])
+    output:
+        results_all = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.tsv",
+        results_up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-up.tsv",
+        results_down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-down.tsv",
+        results_unch = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-unch.tsv",
+        bed_all = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.bed",
+        bed_up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-up.bed",
+        bed_down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-down.bed",
+        bed_unch = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-unch.bed",
+        normcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-counts-sfnorm-{norm}.tsv",
+        rldcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-counts-rlog-{norm}.tsv",
+        qcplots = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-qcplots-{norm}.svg"
+    script:
+        "scripts/call_de_transcripts.R"
 
-# rule separate_de_peaks:
-#     input:
-#         "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.tsv",
-#     output:
-#         up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-up.tsv",
-#         down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-down.tsv",
-#     params:
-#         fdr = -log10(config["deseq"]["fdr"])
-#     log: "logs/separate_de_peaks/separate_de_peaks-{condition}-v-{control}-{norm}.log"
-#     shell: """
-#         (awk -v afdr={params.fdr} 'BEGIN{{FS=OFS="\t"}} NR==1{{print > "{output.up}"; print > "{output.down}" }} NR>1 && $10>afdr && $7>0 {{print > "{output.up}"}} NR>1 && $10>afdr && $7<0 {{print > "{output.down}"}}' {input}) &> {log}
-#         """
-
-# rule de_peaks_to_bed:
-#     input:
-#         "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-{direction}.tsv",
-#     output:
-#         "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-{direction}.bed",
-#     log: "logs/de_peaks_to_bed/de_peaks_to_bed-{condition}-v-{control}-{norm}-{direction}.log"
-#     shell: """
-#         (tail -n +2 {input} | awk 'BEGIN{{FS=OFS="\t"}}{{print $2, $4, $5, $1, $7":"$11, $3}}' > {output}) &> {log}
-#         """
-
-# rule summarise_de_results:
-#     input:
-#         total = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.tsv",
-#         genic = "diff_exp/{condition}-v-{control}/genic/{condition}-v-{control}-results-{norm}-all-genic.tsv",
-#         intragenic = "diff_exp/{condition}-v-{control}/intragenic/{condition}-v-{control}-results-{norm}-all-intragenic.tsv",
-#         antisense = "diff_exp/{condition}-v-{control}/antisense/{condition}-v-{control}-results-{norm}-all-antisense.tsv",
-#         convergent = "diff_exp/{condition}-v-{control}/convergent/{condition}-v-{control}-results-{norm}-all-convergent.tsv",
-#         divergent = "diff_exp/{condition}-v-{control}/divergent/{condition}-v-{control}-results-{norm}-all-divergent.tsv",
-#         intergenic = "diff_exp/{condition}-v-{control}/intergenic/{condition}-v-{control}-results-{norm}-all-intergenic.tsv",
-#     params:
-#         lfc = log2(config["deseq"]["fold-change-threshold"]),
-#         alpha = config["deseq"]["fdr"]
-#     output:
-#         summary = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{norm}-diffexp-summary.svg",
-#         maplot = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{norm}-diffexp-maplot.svg",
-#         volcano = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{norm}-diffexp-volcano.svg",
-#     script: "scripts/de_summary.R"
