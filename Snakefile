@@ -33,6 +33,9 @@ localrules:
     cat_direction_counts,
     map_counts_to_transcripts, get_transcript_counts,
 
+onsuccess:
+    shell("bash mogrify.sh")
+
 rule all:
     input:
         #FastQC

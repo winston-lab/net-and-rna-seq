@@ -118,6 +118,7 @@ call_de_bases = function(intable, norm, sitable, samples, groups, condition, con
         inner_join(ncountsavg, by=c('transcript_id', 'chrom', 'strand', 'start', 'end')) %>%
         mutate_at(c('pvalue','padj'), funs(-log10(.))) %>%
         mutate_if(is.numeric, round, 3) %>% dplyr::rename(logpval=pvalue, logpadj=padj, meanExpr=baseMean) %>% 
+        mutate_at(vars(start, end), funs(as.integer(.))) %>%
         write_tsv(path=results_all, col_names=TRUE) 
     
     #plot library size vs sizefactor

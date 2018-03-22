@@ -17,6 +17,7 @@ diff_exp/
 rulegraph.svg
 dag.svg
 Rplots.pdf
+mogrify.sh
 
 config.yaml
 local_execute_cluster.sh
