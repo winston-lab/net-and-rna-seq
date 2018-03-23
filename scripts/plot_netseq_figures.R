@@ -753,9 +753,9 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         meta_sample_sense = meta_sample_sense + facet_grid(replicate ~ annotation)
         meta_sample_antisense = meta_sample_antisense + facet_grid(replicate ~ annotation)
         
-        meta_sample_both_overlay = meta_sample_both + facet_grid(.~annotation)
-        meta_sample_sense_overlay = meta_sample_sense + facet_grid(.~annotation)
-        meta_sample_antisense_overlay = meta_sample_antisense + facet_grid(.~annotation)
+        meta_sample_overlay_both = meta_sample_both + facet_grid(.~annotation)
+        meta_sample_overlay_sense = meta_sample_sense + facet_grid(.~annotation)
+        meta_sample_overlay_antisense = meta_sample_antisense + facet_grid(.~annotation)
         
         meta_group_both = meta_group_both + facet_grid(.~annotation)
         meta_group_sense = meta_group_sense + facet_grid(.~annotation)
