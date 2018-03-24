@@ -7,10 +7,10 @@ library(ggthemes)
 library(gtable)
 
 main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, scaled_length, pct_cutoff, log_transform, pcount,
-                trim_pct, refptlabel, endlabel, cmap, sortmethod, cluster_scale, cluster_samples, cluster_five, cluster_three, k,
-                heatmap_sample_both_out, heatmap_group_both_out, meta_sample_both_out, meta_sample_overlay_both_out, meta_group_both_out, meta_sampleclust_both_out, meta_groupclust_both_out,
-                heatmap_sample_sense_out, heatmap_group_sense_out, meta_sample_sense_out, meta_sample_overlay_sense_out, meta_group_sense_out, meta_sampleclust_sense_out, meta_groupclust_sense_out,
-                heatmap_sample_antisense_out, heatmap_group_antisense_out, meta_sample_antisense_out, meta_sample_overlay_antisense_out, meta_group_antisense_out, meta_sampleclust_antisense_out, meta_groupclust_antisense_out,
+                trim_pct, meta_spread, refptlabel, endlabel, cmap, sortmethod, cluster_scale, cluster_samples, cluster_five, cluster_three, k,
+                heatmap_sample_both_out, heatmap_group_both_out, meta_sample_both_out, meta_sample_overlay_both_out, meta_group_both_out, meta_sampleanno_both_out, meta_groupanno_both_out, meta_sampleclust_both_out, meta_groupclust_both_out,
+                heatmap_sample_sense_out, heatmap_group_sense_out, meta_sample_sense_out, meta_sample_overlay_sense_out, meta_group_sense_out, meta_sampleanno_sense_out, meta_groupanno_sense_out, meta_sampleclust_sense_out, meta_groupclust_sense_out,
+                heatmap_sample_antisense_out, heatmap_group_antisense_out, meta_sample_antisense_out, meta_sample_overlay_antisense_out, meta_group_antisense_out, meta_sampleanno_antisense_out, meta_groupanno_antisense_out, meta_sampleclust_antisense_out, meta_groupclust_antisense_out,
                 anno_out, cluster_out){
     
     hmap_ybreaks = function(limits){
@@ -35,7 +35,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         if (logtxn){
             heatmap_base = heatmap_base +
                 geom_raster(aes(x=position, y=new_index, fill=log2(cpm+pcount)), interpolate=FALSE) +
-                scale_fill_viridis(option = cmap, na.value="#FFFFFF00",
+                scale_fill_viridis(option = cmap, 
                                    name= if (strand != "both"){bquote(bold(log[2] ~ .(strand) ~ "NET-seq" ~ signal))} else {bquote(bold(log[2] ~ "NET-seq" ~ signal))},
                                    limits = c(NA, flimit), oob=scales::squish,
                                    guide=guide_colorbar(title.position="top",
@@ -44,7 +44,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         else {
             heatmap_base = heatmap_base +
                 geom_raster(aes(x=position, y=new_index, fill=cpm), interpolate=FALSE) +
-                scale_fill_viridis(option = cmap, na.value="#FFFFFF00",
+                scale_fill_viridis(option = cmap, 
                                    name=if_else(strand != "both", paste(strand, "NET-seq signal"),
                                                 "NET-seq signal"),
                                    limits = c(NA, flimit), oob=scales::squish,
@@ -100,20 +100,26 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         if (groupvar=="sample"){
             metagene = ggplot(data = df, aes(x=position, group=sample,
                                              color=group, fill=group))
-        }
-        else if (groupvar=="group"){
+        } else if (groupvar=="group"){
             metagene = ggplot(data = df, aes(x=position, group=group,
                                              color=group, fill=group))
-        }
-        else if (groupvar=="sampleclust"){
+        } else if (groupvar=="sampleclust"){
             metagene = ggplot(data = df %>% mutate(sampleclustid = paste(sample, cluster)),
                               aes(x=position, group=sampleclustid,
                                   color=factor(cluster), fill=factor(cluster)))
-        }
-        else if (groupvar=="groupclust"){
+        } else if (groupvar=="groupclust"){
             metagene = ggplot(data = df %>% mutate(groupclustid = paste(group, cluster)),
                               aes(x=position, group=groupclustid,
                                   color=factor(cluster), fill=factor(cluster)))
+        } else if (groupvar=="sampleanno"){
+            metagene = ggplot(data = df %>%
+                                  mutate(grouping = fct_inorder(paste(sample, annotation, cluster), ordered=TRUE),
+                                         coloring = fct_inorder(paste0(annotation,", ", cluster), ordered=TRUE)),
+                              aes(x=position, group=grouping, color=coloring, fill=coloring))
+        } else if (groupvar=="groupanno"){
+            metagene = ggplot(data = df %>% 
+                                  mutate(coloring = fct_inorder(paste0(annotation,", ", cluster), ordered=TRUE)),
+                              aes(x=position, color=coloring, fill=coloring))
         }
         
         metagene = metagene +
@@ -126,34 +132,34 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         if (strand=="both"){
             metagene = metagene +
                 geom_ribbon(aes(ymin=-mean_antisense, ymax=0), alpha=0.05, size=0) +
-                geom_ribbon(aes(ymin=-mean_antisense-1.96*sem_antisense,
-                                ymax=-mean_antisense+1.96*sem_antisense),
+                geom_ribbon(aes(ymin=-high_antisense,
+                                ymax=-low_antisense),
                                 alpha=0.4, size=0) +
                 geom_line(aes(y=-mean_antisense)) +
                 geom_ribbon(aes(ymin=0, ymax=mean_sense), alpha=0.1, size=0) +
-                geom_ribbon(aes(ymin=mean_sense-1.96*sem_sense,
-                                ymax=mean_sense+1.96*sem_sense),
+                geom_ribbon(aes(ymin=low_sense,
+                                ymax=high_sense),
                                 alpha=0.4, size=0) +
                 geom_line(aes(y=mean_sense)) +
-                geom_hline(yintercept = 0, size=0.5, color="grey65")
-        }
-        else if (strand=="antisense"){
+                geom_hline(yintercept = 0, size=0.5, color="black")
+        } else if (strand=="antisense"){
             metagene = metagene +
-                geom_ribbon(aes(ymin=mean_antisense-1.96*sem_antisense,
-                                ymax=mean_antisense+1.96*sem_antisense),
+                geom_ribbon(aes(ymin=low_antisense,
+                                ymax=high_antisense),
                                 alpha=0.4, size=0) +
                 geom_line(aes(y=mean_antisense))
-        }
-        else if (strand=="sense"){
+        } else if (strand=="sense"){
             metagene = metagene +
-                geom_ribbon(aes(ymin=mean_sense-1.96*sem_sense,
-                                ymax=mean_sense+1.96*sem_sense),
+                geom_ribbon(aes(ymin=low_sense,
+                                ymax=high_sense),
                                 alpha=0.4, size=0) +
                 geom_line(aes(y=mean_sense))
         }
         metagene = metagene +
-            scale_y_continuous(limits = c(NA, NA), name="normalized counts") +
-            scale_color_ptol(guide=guide_legend(label.position="top", label.hjust=0.5)) +
+            scale_y_continuous(limits = c(NA, NA), name="normalized counts",
+                               labels=function(x) abs(x)) +
+            scale_color_ptol(guide=guide_legend(label.position=ifelse(groupvar %in% c("sampleanno", "groupanno"), "right", "top"),
+                                                label.hjust=ifelse(groupvar %in% c("sampleanno", "groupanno"), 0, 0.5))) +
             scale_fill_ptol() +
             ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
                             "NET-seq signal")) +
@@ -167,7 +173,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                   strip.text = element_text(size=12, color="black", face="bold"),
                   legend.text = element_text(size=12),
                   legend.title = element_blank(),
-                  legend.position = "top",
+                  legend.position = ifelse(groupvar %in% c("sampleanno", "groupanno"), "bottom", "top"),
                   legend.key.width = unit(3, "cm"),
                   plot.title = element_text(size=12),
                   plot.subtitle = element_text(size=10, face="plain"),
@@ -182,8 +188,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                                               else {"(nt)"}),
                                    limits = c(-upstream/1000, dnstream/1000),
                                    expand=c(0,0))
-        }
-        else {
+        } else {
             metagene = metagene +
                 scale_x_continuous(breaks=c(0, (scaled_length/2)/1000, scaled_length/1000),
                                    labels=c(refptlabel, "", endlabel),
@@ -191,11 +196,12 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                                    limits = c(-upstream/1000, (scaled_length+dnstream)/1000),
                                    expand=c(0,0))
         }
+        
         if (groupvar %in% c("sampleclust", "groupclust")){
             metagene = metagene +
                 scale_color_colorblind(guide=guide_legend(label.position="top", label.hjust=0.5)) +
                 scale_fill_colorblind()
-        }
+        } 
         return(metagene)
     }
     
@@ -357,23 +363,29 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     n_samples = length(samplelist)
     n_groups = n_distinct(df[["group"]])
     
-    #clustering
+    #clustering, length sorting, or no sorting
     if (sortmethod=="cluster"){
         reorder = tibble()
         
         #cluster for each annotation
         for (i in 1:length(annotations)){
+            # filter samples and positions to cluster on,
+            # using mean of samples in a group
             rr = df %>% filter(annotation==annotations[i] & paste0(sample,"-",strand) %in% cluster_samples &
-                                   between(position, cluster_five/1000, cluster_three/1000))
+                                   between(position, cluster_five/1000, cluster_three/1000)) %>% 
+                group_by(group, annotation, index, position, strand) %>% 
+                summarise(cpm=mean(cpm))
+            # if specified, rescale data for each index 0 to 1
             if (cluster_scale){
                 rr = rr %>% 
-                    group_by(group, sample, annotation, index, strand, replicate) %>%
-                    mutate(cpm = scales::squish(cpm)) %>% ungroup()
+                    group_by(group, annotation, index, strand) %>% 
+                    mutate(cpm = scales::rescale(cpm))
             }
             rr = rr %>% 
-                select(-c(group, annotation, replicate, strand)) %>% 
-                unite(cid, c(sample, position), sep="~") %>%
-                spread(cid, cpm, fill=0) %>%
+                ungroup() %>% 
+                select(-annotation) %>% 
+                unite(cid, c(group, position, strand), sep="~") %>%
+                spread(cid, cpm, fill=0) %>% 
                 select(-index)
             
             d = dist(rr, method="euclidean")
@@ -394,9 +406,9 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                                      cluster = seriated[["labels"]],
                                      og_index = seriated[["order"]]) %>%
                     mutate(new_index = row_number())
-            }
-            else if (k[i]==1){
+            } else if (k[i]==1){
                 seriated = seriate(d, method="OLO")
+                dev.off() 
                 sub_reorder = tibble(annotation = annotations[i],
                                      cluster = as.integer(1),
                                      og_index = get_order(seriated)) %>% 
@@ -418,8 +430,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             mutate(new_index = as.integer(new_index+1-min(new_index))) %>% 
             ungroup() %>% 
             arrange(annotation, cluster, new_index)
-    } 
-    else if (sortmethod=="length"){
+    } else if (sortmethod=="length"){
         sorted = bed %>% group_by(annotation) %>% 
             arrange(end-start, .by_group=TRUE) %>% 
             rowid_to_column(var= "new_index") %>% 
@@ -436,8 +447,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             select(index, new_index, annotation) %>% 
             right_join(df, by=c("annotation", "index")) %>% 
             mutate(cluster=as.integer(1))
-    }
-    else {
+    } else {
         df = df %>% mutate(new_index = index,
                            cluster = as.integer(1))
         
@@ -451,22 +461,35 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     df_sample = df %>%
         mutate(replicate = fct_inorder(paste("replicate", replicate), ordered=TRUE),
                cluster = fct_inorder(paste("cluster", cluster), ordered=TRUE))
-    sample_cutoff_sense = df %>% filter(strand=="sense") %>%
+    sample_cutoff_sense = df %>% filter(strand=="sense" & cpm>0) %>%
         pull(cpm) %>% quantile(probs=pct_cutoff, na.rm=TRUE)
-    sample_cutoff_antisense = df %>% filter(strand=="antisense") %>%
+    sample_cutoff_antisense = df %>% filter(strand=="antisense" & cpm>0) %>%
         pull(cpm) %>% quantile(probs=pct_cutoff, na.rm=TRUE)
     sample_cutoff_both = max(sample_cutoff_sense, sample_cutoff_antisense, na.rm=TRUE)
     
     df_group = df %>% group_by(group, annotation, position, cluster, new_index, strand) %>%
         summarise(cpm = mean(cpm)) %>% ungroup() %>%
         mutate(cluster = fct_inorder(paste("cluster", cluster), ordered=TRUE))
-    group_cutoff_sense = df_group %>% filter(strand=="sense") %>%
+    group_cutoff_sense = df_group %>% filter(strand=="sense" & cpm>0) %>%
         pull(cpm) %>% quantile(probs=pct_cutoff, na.rm=TRUE)
-    group_cutoff_antisense = df_group %>% filter(strand=="antisense") %>%
+    group_cutoff_antisense = df_group %>% filter(strand=="antisense" & cpm>0) %>%
         pull(cpm) %>% quantile(probs=pct_cutoff, na.rm=TRUE)
     group_cutoff_both = max(group_cutoff_sense, group_cutoff_antisense, na.rm=TRUE)
     
-    heatmap_sample_both = hmap(df_sample, sample_cutoff_both, strand="both", logtxn=log_transform)
+    # if the sortmethod isn't length, fill missing data with minimum signal
+    # (only for heatmaps, don't want to influence metagene values)
+    if (sortmethod != "length"){
+        df_sample = df_sample %>%
+            group_by(group, sample, annotation, strand, replicate, cluster) %>%
+            complete(new_index, position, fill=list(cpm=min(df_sample[["cpm"]]))) %>% 
+            ungroup()
+        df_group = df_group %>% 
+            group_by(group, annotation, cluster, strand) %>% 
+            complete(new_index, position, fill=list(cpm=min(df_group[["cpm"]]))) %>% 
+            ungroup()
+    }
+    
+    heatmap_sample_both = hmap(df_sample, sample_cutoff_both, strand="both")
     heatmap_sample_sense = hmap(df_sample %>% filter(strand=="sense"), sample_cutoff_sense, strand="sense")
     heatmap_sample_antisense = hmap(df_sample %>% filter(strand=="antisense"), sample_cutoff_antisense, strand="antisense")
     heatmap_group_both = hmap(df_group, group_cutoff_both, strand="both")
@@ -509,8 +532,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         }
         heatmap_group_sense = format_group_hmap(heatmap_group_sense)
         heatmap_group_antisense = format_group_hmap(heatmap_group_antisense)
-    }
-    else if (n_anno==1 && max(k)>1){
+    } else if (n_anno==1 && max(k)>1){
         heatmap_sample_both = heatmap_sample_both +
             ylab(annotations[1]) +
             facet_grid(replicate + cluster ~ group + strand, scales="free_y", space="free_y") +
@@ -549,8 +571,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         
         heatmap_group_sense = format_group_hmap(heatmap_group_sense)
         heatmap_group_antisense = format_group_hmap(heatmap_group_antisense)
-    }
-    else if (n_anno>1 && max(k)==1){
+    } else if (n_anno>1 && max(k)==1){
         heatmap_sample_both = heatmap_sample_both +
             facet_grid(replicate + annotation ~ group + strand, scales="free_y", space="free_y") +
             theme(strip.text.y = element_text(size=12, face="bold", color="black"),
@@ -579,8 +600,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             facet_grid(annotation ~ group, scales="free_y", space="free_y")
         heatmap_group_antisense = heatmap_group_antisense +
             facet_grid(annotation ~ group, scales="free_y", space="free_y")
-    }
-    else if (n_anno>1 && max(k)>1){
+    } else if (n_anno>1 && max(k)>1){
         heatmap_sample_both = heatmap_sample_both +
             facet_grid(replicate + annotation + cluster ~ group + strand,
                        scales="free_y", space="free_y") +
@@ -626,28 +646,56 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     ggsave(heatmap_group_sense_out, plot=heatmap_group_sense, width=2+9*n_groups, height=30, units="cm", limitsize=FALSE)
     ggsave(heatmap_group_antisense_out, plot=heatmap_group_antisense, width=2+9*n_groups, height=30, units="cm", limitsize=FALSE)
     
+    get_meta_values = function(df, trim_pct=trim_pct, meta_spread = "quantile"){
+        if (meta_spread == "sem"){
+            df = df %>% 
+                summarise(mean_sense = winsor.mean(sense, trim=trim_pct),
+                          mean_antisense = winsor.mean(antisense, trim=trim_pct),
+                          sem_sense = winsor.sd(sense, trim=trim_pct)/sqrt(n()),
+                          sem_antisense = winsor.sd(antisense, trim=trim_pct)/sqrt(n())) %>% 
+                mutate(high_sense = mean_sense+1.96*sem_sense,
+                       low_sense = max(c(0, mean_sense-1.96*sem_sense)),
+                       high_antisense = mean_antisense+1.96*sem_antisense,
+                       low_antisense = max(c(0,mean_antisense-1.96*sem_antisense)))
+        } else if (meta_spread == "sd"){
+            df = df %>% 
+                summarise(mean_sense = winsor.mean(sense, trim=trim_pct),
+                          mean_antisense = winsor.mean(antisense, trim=trim_pct),
+                          sd_sense = winsor.sd(sense, trim=trim_pct),
+                          sd_antisense = winsor.sd(antisense, trim=trim_pct)) %>% 
+                mutate(high_sense = mean_sense+1.96*sd_sense,
+                       low_sense = max(c(0,mean_sense-1.96*sd_sense)),
+                       high_antisense = mean_antisense+1.96*sd_antisense,
+                       low_antisense = max(c(0,mean_antisense-1.96*sd_antisense)))
+        } else if (meta_spread == "quantile"){
+            df = df %>% 
+                summarise(mean_sense = winsor.mean(sense, trim=trim_pct),
+                          mean_antisense = winsor.mean(antisense, trim=trim_pct),
+                          high_sense = quantile(sense, probs=0.75),
+                          low_sense = quantile(sense, probs=0.25),
+                          high_antisense = quantile(antisense, probs=0.75),
+                          low_antisense = quantile(antisense, probs=0.25))
+        }
+        return(df)
+    }
+    
     metadf_sample = df %>%
         group_by(group, sample, annotation, strand, position, cluster, replicate) %>%
         spread(strand, cpm) %>% 
-        summarise(mean_sense = winsor.mean(sense, trim=trim_pct),
-                  mean_antisense = winsor.mean(antisense, trim=trim_pct),
-                  sem_sense = winsor.sd(sense, trim=trim_pct)/sqrt(n()),
-                  sem_antisense = winsor.sd(antisense, trim=trim_pct)/sqrt(n())) %>% 
-        ungroup() %>% arrange(replicate) %>% 
+        get_meta_values(trim_pct=trim_pct, meta_spread=meta_spread) %>% 
+        ungroup() %>%
+        arrange(replicate) %>% 
         mutate(replicate = fct_inorder(paste("replicate", replicate), ordered=TRUE)) %>%
         arrange(cluster) %>%
         mutate(cluster = fct_inorder(paste("cluster", cluster), ordered=TRUE))
     
     metadf_group = df %>% group_by(group, annotation, strand, position, cluster) %>% 
         spread(strand, cpm) %>% 
-        summarise(mean_sense = winsor.mean(sense, trim=trim_pct),
-                  mean_antisense = winsor.mean(antisense, trim=trim_pct),
-                  sem_sense = winsor.sd(sense, trim=trim_pct)/sqrt(n()),
-                  sem_antisense = winsor.sd(antisense, trim=trim_pct)/sqrt(n())) %>% 
+        get_meta_values(trim_pct=trim_pct, meta_spread=meta_spread) %>% 
         ungroup() %>%
         arrange(cluster) %>%
         mutate(cluster = fct_inorder(paste("cluster", cluster), ordered=TRUE))
-   
+    
     meta_sample_both = meta(metadf_sample, strand="both")
     meta_sample_sense = meta(metadf_sample, strand="sense")
     meta_sample_antisense = meta(metadf_sample, strand="antisense")
@@ -660,6 +708,14 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     meta_groupclust_both = meta(metadf_group, groupvar="groupclust", strand="both")
     meta_groupclust_sense = meta(metadf_group, groupvar="groupclust", strand="sense")
     meta_groupclust_antisense = meta(metadf_group, groupvar="groupclust", strand="antisense")
+    if(max(k) > 1 | n_anno > 1){
+        meta_sampleanno_both = meta(metadf_sample, groupvar="sampleanno", strand="both")
+        meta_sampleanno_sense = meta(metadf_sample, groupvar="sampleanno", strand="sense")
+        meta_sampleanno_antisense = meta(metadf_sample, groupvar="sampleanno", strand="antisense")
+        meta_groupanno_both = meta(metadf_group, groupvar="groupanno", strand="both")
+        meta_groupanno_sense = meta(metadf_group, groupvar="groupanno", strand="sense")
+        meta_groupanno_antisense = meta(metadf_group, groupvar="groupanno", strand="antisense")
+    }
     if (n_anno==1 && max(k)==1){
         format_sample_meta = function(ggp, strand){
             ggp = ggp +
@@ -738,17 +794,22 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         ggsave(meta_sample_overlay_both_out, plot = meta_sample_overlay_both, width=16, height=9, units="cm", limitsize=FALSE)
         ggsave(meta_sample_overlay_sense_out, plot = meta_sample_overlay_sense, width=16, height=9, units="cm", limitsize=FALSE)
         ggsave(meta_sample_overlay_antisense_out, plot = meta_sample_overlay_antisense, width=16, height=9, units="cm", limitsize=FALSE)
+        ggsave(meta_sampleanno_both_out, plot = meta_sample_overlay_both, width=16, height=9, units="cm", limitsize=FALSE)
+        ggsave(meta_sampleanno_sense_out, plot = meta_sample_overlay_sense, width=16, height=9, units="cm", limitsize=FALSE)
+        ggsave(meta_sampleanno_antisense_out, plot = meta_sample_overlay_antisense, width=16, height=9, units="cm", limitsize=FALSE)
         ggsave(meta_group_both_out, plot = meta_group_both, width=16, height=9, units="cm", limitsize=FALSE)
         ggsave(meta_group_sense_out, plot = meta_group_sense, width=16, height=9, units="cm", limitsize=FALSE)
         ggsave(meta_group_antisense_out, plot = meta_group_antisense, width=16, height=9, units="cm", limitsize=FALSE)
+        ggsave(meta_groupanno_both_out, plot = meta_group_both, width=16, height=9, units="cm", limitsize=FALSE)
+        ggsave(meta_groupanno_sense_out, plot = meta_group_sense, width=16, height=9, units="cm", limitsize=FALSE)
+        ggsave(meta_groupanno_antisense_out, plot = meta_group_antisense, width=16, height=9, units="cm", limitsize=FALSE)
         ggsave(meta_sampleclust_both_out, plot = meta_sampleclust_both, width=6+7*n_groups, height=10, units="cm", limitsize=FALSE)
         ggsave(meta_sampleclust_sense_out, plot = meta_sampleclust_sense, width=6+7*n_groups, height=10, units="cm", limitsize=FALSE)
         ggsave(meta_sampleclust_antisense_out, plot = meta_sampleclust_antisense, width=6+7*n_groups, height=10, units="cm", limitsize=FALSE)
         ggsave(meta_groupclust_both_out, plot = meta_groupclust_both, width=6+7*n_groups, height=10, units="cm", limitsize=FALSE)
         ggsave(meta_groupclust_sense_out, plot = meta_groupclust_sense, width=6+7*n_groups, height=10, units="cm", limitsize=FALSE)
         ggsave(meta_groupclust_antisense_out, plot = meta_groupclust_antisense, width=6+7*n_groups, height=10, units="cm", limitsize=FALSE)
-    }
-    else if (n_anno>1 && max(k)==1){
+    } else if (n_anno>1 && max(k)==1){
         meta_sample_both = meta_sample_both + facet_grid(replicate ~ annotation)
         meta_sample_sense = meta_sample_sense + facet_grid(replicate ~ annotation)
         meta_sample_antisense = meta_sample_antisense + facet_grid(replicate ~ annotation)
@@ -761,6 +822,14 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         meta_group_sense = meta_group_sense + facet_grid(.~annotation)
         meta_group_antisense = meta_group_antisense + facet_grid(.~annotation)
         
+        meta_sampleanno_both = meta_sampleanno_both + facet_grid(.~group) + theme(legend.direction="vertical")
+        meta_sampleanno_sense = meta_sampleanno_sense + facet_grid(.~group) + theme(legend.direction="vertical")
+        meta_sampleanno_antisense = meta_sampleanno_antisense + facet_grid(.~group) + theme(legend.direction="vertical")
+        
+        meta_groupanno_both = meta_groupanno_both + facet_grid(.~group)+ theme(legend.direction="vertical")
+        meta_groupanno_sense = meta_groupanno_sense + facet_grid(.~group)+ theme(legend.direction="vertical")
+        meta_groupanno_antisense = meta_groupanno_antisense + facet_grid(.~group)+ theme(legend.direction="vertical")
+        
         meta_sampleclust_both = meta_sampleclust_both + facet_grid(annotation ~ group)
         meta_sampleclust_sense = meta_sampleclust_sense + facet_grid(annotation ~ group)
         meta_sampleclust_antisense = meta_sampleclust_antisense + facet_grid(annotation ~ group)
@@ -768,8 +837,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         meta_groupclust_both = meta_groupclust_both + facet_grid(annotation ~ group)
         meta_groupclust_sense = meta_groupclust_sense + facet_grid(annotation ~ group)
         meta_groupclust_antisense = meta_groupclust_antisense + facet_grid(annotation ~ group)
-    }
-    else if (max(k)>1){
+    } else if (max(k)>1){
         format_sample_meta = function(ggp){
             ggp = ggp +
                 facet_grid(replicate ~ annotation + cluster) +
@@ -787,6 +855,14 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         meta_group_both = meta_group_both + facet_grid(cluster ~ annotation)
         meta_group_sense = meta_group_sense + facet_grid(cluster ~ annotation)
         meta_group_antisense = meta_group_antisense + facet_grid(cluster ~ annotation)
+        
+        meta_sampleanno_both = meta_sampleanno_both + facet_grid(.~group)+ theme(legend.direction="vertical")
+        meta_sampleanno_sense = meta_sampleanno_sense + facet_grid(.~group)+ theme(legend.direction="vertical")
+        meta_sampleanno_antisense = meta_sampleanno_antisense + facet_grid(.~group)+ theme(legend.direction="vertical")
+        
+        meta_groupanno_both = meta_groupanno_both + facet_grid(.~group)+ theme(legend.direction="vertical")
+        meta_groupanno_sense = meta_groupanno_sense + facet_grid(.~group)+ theme(legend.direction="vertical")
+        meta_groupanno_antisense = meta_groupanno_antisense + facet_grid(.~group)+ theme(legend.direction="vertical")
         
         meta_sampleclust_both = meta_sampleclust_both + facet_grid(annotation ~ group) +
             theme(legend.key.width=unit(2, "cm"))
@@ -813,6 +889,12 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         ggsave(meta_group_both_out, plot = meta_group_both, width=3+7*n_anno, height=2+5*max(k), units="cm", limitsize=FALSE)
         ggsave(meta_group_sense_out, plot = meta_group_sense, width=3+7*n_anno, height=2+5*max(k), units="cm", limitsize=FALSE)
         ggsave(meta_group_antisense_out, plot = meta_group_antisense, width=3+7*n_anno, height=2+5*max(k), units="cm", limitsize=FALSE)
+        ggsave(meta_sampleanno_both_out, plot = meta_sampleanno_both, width=3+7*n_groups, height=9+.75*sum(k), units="cm", limitsize=FALSE)
+        ggsave(meta_sampleanno_sense_out, plot = meta_sampleanno_sense, width=3+7*n_groups, height=9+.75*sum(k), units="cm", limitsize=FALSE)
+        ggsave(meta_sampleanno_antisense_out, plot = meta_sampleanno_antisense, width=3+7*n_groups, height=9+.75*sum(k), units="cm", limitsize=FALSE)
+        ggsave(meta_groupanno_both_out, plot = meta_groupanno_both, width=3+7*n_groups, height=9+.75*sum(k), units="cm", limitsize=FALSE)
+        ggsave(meta_groupanno_sense_out, plot = meta_groupanno_sense, width=3+7*n_groups, height=9+.75*sum(k), units="cm", limitsize=FALSE)
+        ggsave(meta_groupanno_antisense_out, plot = meta_groupanno_antisense, width=3+7*n_groups, height=9+.75*sum(k), units="cm", limitsize=FALSE)
         ggsave(meta_sampleclust_both_out, plot = meta_sampleclust_both, width=3+7*n_groups, height=3+6*n_anno, units="cm", limitsize=FALSE)
         ggsave(meta_sampleclust_sense_out, plot = meta_sampleclust_sense, width=3+7*n_groups, height=3+6*n_anno, units="cm", limitsize=FALSE)
         ggsave(meta_sampleclust_antisense_out, plot = meta_sampleclust_antisense, width=3+7*n_groups, height=3+6*n_anno, units="cm", limitsize=FALSE)
@@ -832,6 +914,7 @@ main(in_paths = snakemake@input[["matrices"]],
      pct_cutoff = snakemake@params[["pct_cutoff"]],
      log_transform = snakemake@params[["log_transform"]],
      pcount = snakemake@params[["pcount"]],
+     meta_spread = snakemake@params[["meta_spread"]],
      trim_pct = snakemake@params[["trim_pct"]],
      refptlabel = snakemake@params[["refpointlabel"]],
      endlabel = snakemake@params[["endlabel"]],
@@ -854,6 +937,12 @@ main(in_paths = snakemake@input[["matrices"]],
      meta_sample_overlay_both_out = snakemake@output[["metagene_sample_overlay_both"]],
      meta_sample_overlay_sense_out = snakemake@output[["metagene_sample_overlay_sense"]],
      meta_sample_overlay_antisense_out = snakemake@output[["metagene_sample_overlay_antisense"]],
+     meta_sampleanno_both_out = snakemake@output[["metagene_sampleanno_both"]],
+     meta_sampleanno_sense_out = snakemake@output[["metagene_sampleanno_sense"]],
+     meta_sampleanno_antisense_out = snakemake@output[["metagene_sampleanno_antisense"]],
+     meta_groupanno_both_out = snakemake@output[["metagene_groupanno_both"]],
+     meta_groupanno_sense_out = snakemake@output[["metagene_groupanno_sense"]],
+     meta_groupanno_antisense_out = snakemake@output[["metagene_groupanno_antisense"]],
      meta_group_both_out = snakemake@output[["metagene_group_both"]],
      meta_group_sense_out = snakemake@output[["metagene_group_sense"]],
      meta_group_antisense_out = snakemake@output[["metagene_group_antisense"]],
@@ -865,3 +954,4 @@ main(in_paths = snakemake@input[["matrices"]],
      meta_groupclust_antisense_out = snakemake@output[["metagene_groupclust_antisense"]],
      anno_out = snakemake@params[["annotations_out"]],
      cluster_out = snakemake@params[["clusters_out"]])
+
