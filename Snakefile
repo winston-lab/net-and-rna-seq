@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 from math import log2
-from math import log10
+# from math import log10
 import itertools
 
 configfile: "config.yaml"
@@ -34,7 +34,7 @@ localrules:
     map_counts_to_transcripts, get_transcript_counts,
 
 onsuccess:
-    shell("bash mogrify.sh")
+    shell("(./mogrify.sh) > mogrify.log")
 
 rule all:
     input:
