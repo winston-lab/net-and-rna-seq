@@ -48,8 +48,9 @@ rule all:
         # #quality control
         "qual_ctrl/read_processing-loss.svg",
         expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if sisamples else [],
-        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) + expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-correlations.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]) if sisamples else
-        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-correlations.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"]),
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-{{ptype}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations", "pca"]) +
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-{{ptype}}.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations","pca"]) if sisamples else
+        expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-{{ptype}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations", "pca"]),
         # #datavis
         expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) +
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if sisamples else
@@ -432,6 +433,19 @@ rule plotcorrelations:
         samplelist = plotcorrsamples
     script:
         "scripts/plotcorr.R"
+
+rule pca_and_cluster:
+    input:
+        "coverage/{norm}/union-bedgraph-window-{windowsize}-{norm}.tsv.gz",
+    output:
+        scree = "qual_ctrl/{status}/{condition}-v-{control}/{condition}-v-{control}-netseq-{status}-window-{windowsize}-{norm}-pca_scree.svg",
+        pca = "qual_ctrl/{status}/{condition}-v-{control}/{condition}-v-{control}-netseq-{status}-window-{windowsize}-{norm}-pca.svg",
+        dist = "qual_ctrl/{status}/{condition}-v-{control}/{condition}-v-{control}-netseq-{status}-window-{windowsize}-{norm}-euclidean_distances.svg",
+    params:
+        samplelist = plotcorrsamples,
+        grouplist = lambda wc: [SAMPLES[sample]["group"] for sample in plotcorrsamples(wc)]
+    script:
+        "scripts/pca_and_dist.R"
 
 rule make_stranded_annotations:
     input:
