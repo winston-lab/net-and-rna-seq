@@ -101,8 +101,8 @@ plotcorrelations:
     mem : 12000
 
 pca_and_cluster:
-    time : 60 
-    mem : 20000
+    time : 120 
+    mem : 24000
 
 ratio_counts:
     time: 10

@@ -1,4 +1,6 @@
 library(tidyverse)
+library(forcats)
+library(stringr)
 # library(broom)
 # library(ggfortify)
 library(seriation)
@@ -21,7 +23,7 @@ main = function(intable, samplelist, grouplist, binsize,
     
     n_samples = length(samplelist)
     
-    pcobject = df %>% fast.prcomp()
+    pcobject = df %>% select(-sample) %>% fast.prcomp()
     
     data = bind_cols(df["sample"], pcobject[["x"]] %>% as_tibble(), tibble(group=grouplist)) %>% 
         mutate_if(is.numeric, funs(.8*./max(abs(.)))) %>% 
@@ -68,8 +70,8 @@ main = function(intable, samplelist, grouplist, binsize,
         geom_text_repel(data = data, aes(x=PC1, y=PC2, label=sample), 
                         size=10/72*25.4,
                         fontface="bold",
-                        box.padding = 0.4,
-                        point.padding = 1e-6) +
+                        box.padding = unit(0.4, "lines"),
+                        point.padding = unit(1e-6, "lines")) +
         geom_point(data = data, aes(x=PC1, y=PC2, color=group)) +
         xlab(paste0("PC1: ", pct_var %>% slice(1) %>% pull(pct_variance) %>% "*"(100) %>% round(1), "% variance explained")) +
         ylab(paste0("PC2: ", pct_var %>% slice(2) %>% pull(pct_variance) %>% "*"(100) %>% round(1), "% variance explained")) +
@@ -86,7 +88,7 @@ main = function(intable, samplelist, grouplist, binsize,
         geom_label_repel(data = rotations %>% filter(norm>.5*max(norm)) %>% 
                       mutate(location = str_replace_all(location, c("-minus-"="-:", "-plus-"="+:"))),
                   aes(x=PC1, y=PC2, label=location), 
-                  point.padding=0, label.padding=0.15, box.padding=0.05,
+                  point.padding=unit(0, "lines"), label.padding=unit(0.15, "lines"), box.padding=unit(0.05, "lines"),
                   size=8/72*25.4,
                   alpha=0.9) +
         xlab(paste0("PC1: ", pct_var %>% slice(1) %>% pull(pct_variance) %>% "*"(100) %>% round(1), "% variance explained")) +
@@ -98,7 +100,8 @@ main = function(intable, samplelist, grouplist, binsize,
     ggsave(pca_out, plot=arrangeGrob(pca_plot, pca_loadings_plot, ncol = 1), width=16, height=16, units="cm")
     #####
     ### hierarchical clustering on Euclidean distances
-    distances = df %>% column_to_rownames(var="sample") %>% dist()
+    distances = df %>% remove_rownames() %>% 
+        column_to_rownames(var="sample") %>% dist()
     
     dend = distances %>% reorder(hclust(distances), .) %>% dendro_data()
         
@@ -125,9 +128,9 @@ main = function(intable, samplelist, grouplist, binsize,
                   size=12/72*25.4, fontface="bold", hjust=1,
                   label.size=0) +
         scale_fill_viridis(option="inferno",
-                           name=paste0("Euclidean distance, NET-seq signal in ", binsize, "nt bins"),
+                           name=paste0("Euclidean distance,\nNET-seq signal in ", binsize, "nt bins"),
                            breaks = scales::pretty_breaks(n=2),
-                           guide=guide_colorbar(barwidth=15, barheight=1, title.vjust=0.8)) +
+                           guide=guide_colorbar(barwidth=4+.5*n_samples, barheight=1, title.vjust=0.8)) +
         theme_minimal() +
         theme(panel.grid.major.y = element_blank(),
               text = element_text(size=12, color="black", face="bold"),
@@ -136,12 +139,12 @@ main = function(intable, samplelist, grouplist, binsize,
               axis.title = element_blank(),
               legend.position="top")
     
-    ggsave(cluster_out, plot=dist_plot, width=1.5*n_samples, height=2+0.75*n_samples, units="cm")
+    ggsave(cluster_out, plot=dist_plot, width=2.5*n_samples, height=2+1.5*n_samples, units="cm")
 }
 
 main(intable = snakemake@input[[1]],
      samplelist = snakemake@params[["samplelist"]],
-     grouplist = snakemake@params[["grouplist"]]
+     grouplist = snakemake@params[["grouplist"]],
      binsize= snakemake@wildcards[["windowsize"]],
      scree_out = snakemake@output[["scree"]],
      pca_out = snakemake@output[["pca"]],
