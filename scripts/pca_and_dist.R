@@ -23,7 +23,7 @@ main = function(intable, samplelist, grouplist, binsize,
     
     n_samples = length(samplelist)
     
-    pcobject = df %>% select(-sample) %>% fast.prcomp()
+    pcobject = df %>% select(-sample) %>% fast.prcomp(center=FALSE, scale=FALSE)
     
     data = bind_cols(df["sample"], pcobject[["x"]] %>% as_tibble(), tibble(group=grouplist)) %>% 
         mutate_if(is.numeric, funs(.8*./max(abs(.)))) %>% 
