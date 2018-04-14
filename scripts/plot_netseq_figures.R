@@ -669,8 +669,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                        low_antisense = max(c(0,mean_antisense-1.96*sd_antisense)))
         } else if (meta_spread == "quantile"){
             df = df %>% 
-                summarise(mean_sense = winsor.mean(sense, trim=trim_pct),
-                          mean_antisense = winsor.mean(antisense, trim=trim_pct),
+                summarise(mean_sense = median(sense, na.rm=TRUE),
+                          mean_antisense = median(antisense, na.rm=TRUE),
                           high_sense = quantile(sense, probs=0.75),
                           low_sense = quantile(sense, probs=0.25),
                           high_antisense = quantile(antisense, probs=0.75),
