@@ -7,16 +7,16 @@ import itertools
 configfile: "config.yaml"
 
 SAMPLES = config["samples"]
-sisamples = {k:v for (k,v) in SAMPLES.items() if v["spikein"]=="y"}
-PASSING = {k:v for (k,v) in SAMPLES.items() if v["pass-qc"] == "pass"}
-sipassing = {k:v for (k,v) in PASSING.items() if v["spikein"] == "y"}
+sisamples = {k:v for k,v in SAMPLES.items() if v["spikein"]=="y"}
+PASSING = {k:v for k,v in SAMPLES.items() if v["pass-qc"] == "pass"}
+sipassing = {k:v for k,v in PASSING.items() if v["spikein"] == "y"}
 
-controlgroups = config["comparisons"]["libsizenorm"]["controls"]
-conditiongroups = config["comparisons"]["libsizenorm"]["conditions"]
+controlgroups = [v for k,v in config["comparisons"]["libsizenorm"].items()]
+conditiongroups = [k for k,v in config["comparisons"]["libsizenorm"].items()]
 
 if sipassing:
-    controlgroups_si = config["comparisons"]["spikenorm"]["controls"]
-    conditiongroups_si = config["comparisons"]["spikenorm"]["conditions"]
+    controlgroups_si = [v for k,v in config["comparisons"]["spikenorm"].items()]
+    conditiongroups_si = [k for k,v in config["comparisons"]["spikenorm"].items()]
 
 # CATEGORIES = ["genic", "intragenic", "intergenic", "antisense", "convergent", "divergent"]
 COUNTTYPES = ["counts", "sicounts"] if sisamples else ["counts"]
@@ -63,13 +63,13 @@ def plotcorrsamples(wc):
     dd = SAMPLES if wc.status=="all" else PASSING
     if wc.condition=="all":
         if wc.norm=="libsizenorm": #condition==all,norm==lib
-            return list(dd.keys())
+            return list(SAMPLES.keys())
         else: #condition==all,norm==spike
-            return [k for k,v in dd.items() if v["spikein"]=="y"]
+            return list(sisamples.keys())
     elif wc.norm=="libsizenorm": #condition!=all;norm==lib
-        return [k for k,v in dd.items() if v["group"]==wc.control or v["group"]==wc.condition]
+        return [k for k,v in PASSING.items() if v["group"] in [wc.control, wc.condition]]
     else: #condition!=all;norm==spike
-        return [k for k,v in dd.items() if (v["group"]==wc.control or v["group"]==wc.condition) and v["spikein"]=="y"]
+        return [k for k,v in sipassing.items() if v["group"] in [wc.control, wc.condition]]
 
 def cluster_samples(status, norm, cluster_groups, cluster_strands):
     ll = []
@@ -285,7 +285,6 @@ rule remove_PCR_duplicates:
         (rm {input}) &>> {log}
         """
 
-#TODO: account for case with no random hexamer correctly
 rule read_processing_numbers:
     input:
         adapter = expand("logs/clean_reads/clean_reads-{sample}.log", sample=SAMPLES),
@@ -370,9 +369,9 @@ rule plot_si_pct:
         plot = "qual_ctrl/{status}/{status}-spikein-plots.svg",
         stats = "qual_ctrl/{status}/{status}-spikein-stats.tsv"
     params:
-        samplelist = lambda wc : [k for k,v in sisamples.items() if v["spikein"]=="y"] if wc.status=="all" else [k for k,v in sipassing.items() if v["spikein"]=="y"],
-        conditions = config["comparisons"]["spikenorm"]["conditions"],
-        controls = config["comparisons"]["spikenorm"]["controls"],
+        samplelist = lambda wc : list(sisamples.keys()) if wc.status=="all" else list(sipassing.keys()),
+        conditions = conditiongroups_si if sisamples else [],
+        controls = controlgroups_si if sisamples else [],
     script: "scripts/plotsipct.R"
 
 rule make_stranded_genome:
@@ -620,7 +619,7 @@ def ratiosamples(wc):
     if wc.condition=="all":
         return list(dd.keys())
     else:
-        return [k for k,v in dd.items() if v["group"]==wc.control or v["group"]==wc.condition]
+        return [k for k,v in dd.items() if v["group"] in [wc.control, wc.condition]]
 
 rule plot_ratios:
     input:
@@ -683,7 +682,7 @@ rule map_counts_to_transcripts:
         """
 
 def getsamples(ctrl, cond):
-    return [k for k,v in PASSING.items() if (v["group"]==ctrl or v["group"]==cond)]
+    return [k for k,v in PASSING.items() if v["group"] in [ctrl, cond]]
 
 rule get_transcript_counts:
     input:
