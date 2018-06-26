@@ -1,33 +1,50 @@
 __default__:
     queue : "short"
-    time : 60 
+    time : 60
     n : 1
     mem : 2000
     name : "{rule}.{wildcards}"
     log : "logs/cluster/{rule}.{wildcards}.log"
     err : "logs/cluster/{rule}.{wildcards}.err"
 
-fastqc_raw:
-    time : 15 
-    n : 1
-    mem : 4000
-
 clean_reads:
-    time : 90 
+    time : 45
+    n: 2
     mem : 2000
 
 remove_molec_barcode:
-    time : 45 
-    n : 2
+    time : 45
     mem : 2000
 
+align:
+    time : 180
+    n : 8
+    mem : 2000
+
+select_unique_mappers:
+    time : 60
+    n : 2
+    mem : 3000
+
+remove_PCR_duplicates:
+    time : 180
+    mem : 2000
+
+
+
+
+fastqc_raw:
+    time : 15
+    n : 1
+    mem : 4000
+
 fastqc_cleaned:
-    time : 10 
+    time : 10
     n : 1
     mem : 4000
 
 fastqc_aligned:
-    time : 20 
+    time : 20
     n : 1
     mem : 4000
 
@@ -46,24 +63,6 @@ plot_read_processing:
     n: 1
     mem: 4000
 
-bowtie2_build:
-    time : 60
-    mem : 2000
-
-align:
-    time : 180
-    n : 8
-    mem : 8000
-
-select_unique_mappers:
-    time : 120
-    n : 2
-    mem : 6000
-
-remove_PCR_duplicates:
-    time : 180
-    mem : 2000
-
 get_coverage:
     time : 60
     mem : 2000
@@ -79,7 +78,7 @@ make_stranded_bedgraph:
 bg_to_bw:
     time: 10
     mem: 1000
- 
+
 compute_matrix:
     time : 60
     mem : 2000
@@ -97,11 +96,11 @@ join_window_counts:
     mem: 4000
 
 plotcorrelations:
-    time : 45 
+    time : 45
     mem : 12000
 
 pca_and_cluster:
-    time : 120 
+    time : 120
     mem : 24000
 
 ratio_counts:
@@ -121,5 +120,5 @@ call_de_transcripts:
     mem: 10000
 
 # summarise_de_results:
-#     time: 15 
+#     time: 15
 #     mem: 4000

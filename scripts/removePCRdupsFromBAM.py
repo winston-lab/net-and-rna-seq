@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """
-
 Date : March 18, 2016
 
 Author : Heather Landry
@@ -11,7 +10,7 @@ will print; if the barcode and position has been seen previously, it will not pr
 
 use : python removePCRdupsFromBAM.py    iBAM (input BAM file with only unique alignments) [1]
                                         oBAM (output BAM file containing only non duplicated reads) [2]
-                                            
+
 """
 import sys, pysam, os, numpy, re
 
@@ -24,19 +23,19 @@ MB = set()
 for read in iBAM:
     mb = read.qname.split('_MolecularBarcode:')[1]
     chrom = iBAM.getrname(read.tid)
-    
-    # selecting the 3' position for pos strand 
+
+    # selecting the 3' position for pos strand
     if read.is_reverse:
         start = read.aend
         std='pos'
-    
-    # selecting the 3' position for neg strand 
+
+    # selecting the 3' position for neg strand
     if not read.is_reverse:
         start = read.pos
         std='neg'
 
     key = str(chrom)+"_"+str(start)+"_"+str(std)+"_"+str(mb)
-    
+
     # output 1 read per molecular barcode
     if key not in MB:
         MB.add(key)

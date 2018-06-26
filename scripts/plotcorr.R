@@ -10,12 +10,12 @@ main = function(intable, pcount, samplelist, binsize, outpath){
         mutate_at(vars(sample), funs(fct_inorder(., ordered=TRUE))) %>%
         spread(sample, signal) %>%
         select(-name)
-    
+
     df = df[which(rowSums(df)>0),]
     maxsignal = max(df) + pcount
     mincor = min(cor(df, use="complete.obs")) * .99
     plots = list()
-    
+
     #for each row
     for (i in 1:ncol(df)){
         #for each column
@@ -39,8 +39,8 @@ main = function(intable, pcount, samplelist, binsize, outpath){
                         geom_density(aes(y=..scaled..), color="#114477", size=0.8) +
                         scale_y_continuous(breaks=c(0,.5,1)) +
                         scale_x_log10(limit = c(pcount, maxsignal)) +
-                        annotate("text", x=.90*maxsignal, y=0.9, hjust=1, 
-                                 label=unique(subdf$sample), size=3, fontface="bold") 
+                        annotate("text", x=.90*maxsignal, y=0.9, hjust=1,
+                                 label=unique(subdf$sample), size=3, fontface="bold")
                 plots[[idx]] = plot
             }
             #bottom left (scatter)
@@ -61,7 +61,7 @@ main = function(intable, pcount, samplelist, binsize, outpath){
             }
         }
     }
-    
+
     mat = ggmatrix(plots, nrow=ncol(df), ncol=ncol(df),
                    title = paste0("NET-seq signal, ", binsize, "nt bins"),
                    xAxisLabels = names(df), yAxisLabels = names(df), switch="both") +
@@ -78,7 +78,7 @@ main = function(intable, pcount, samplelist, binsize, outpath){
     h = 9/16*w+0.5
     ggsave(outpath, mat, width=w, height=h, units="cm")
     print(warnings())
-}    
+}
 
 main(intable = snakemake@input[[1]],
      pcount = snakemake@params[["pcount"]],
