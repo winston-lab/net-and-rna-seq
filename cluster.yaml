@@ -60,7 +60,7 @@ plot_read_processing:
     n: 1
     mem: 4000
 
-get_coverage:
+genome_coverage:
     time : 60
     mem : 2000
 

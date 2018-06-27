@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 localrules:
-    bowtie2_build
+    bowtie2_build,
+    index_bam,
 
 #align to combined genome with Tophat2 (single genome only if no samples have spike-ins), without reference transcriptome
 rule bowtie2_build:
@@ -75,5 +76,32 @@ rule remove_PCR_duplicates:
     shell: """
         (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
         (rm {input}) &>> {log}
+        """
+
+#indexing is required for separating species by samtools view
+rule index_bam:
+    input:
+        "alignment/{sample}_net-seq-noPCRduplicates.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam"
+    output:
+        "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam.bai"
+    log : "logs/index_bam/index_bam-{sample}.log"
+    shell: """
+        (samtools index {input}) &> {log}
+        """
+
+rule bam_separate_species:
+    input:
+        bam = "alignment/{sample}_net-seq-noPCRduplicates.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam",
+        bai = "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam.bai",
+        chrsizes = config["combinedgenome"]["chrsizes"]
+    output:
+        "alignment/{sample}_net-seq-noPCRduplicates-{species}.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers-{species}.bam"
+    params:
+        filterprefix = lambda wc: config["combinedgenome"]["spikein_prefix"] if wc.species=="experimental" else config["combinedgenome"]["experimental_prefix"],
+        prefix = lambda wc: config["combinedgenome"]["experimental_prefix"] if wc.species=="experimental" else config["combinedgenome"]["spikein_prefix"]
+    threads: config["threads"]
+    log: "logs/bam_separate_species/bam_separate_species-{sample}-{species}.log"
+    shell: """
+        (samtools view -h {input.bam} $(grep {params.prefix} {input.chrsizes} | awk 'BEGIN{{FS="\t"; ORS=" "}}{{print $1}}') | grep -v -e 'SN:{params.filterprefix}' | sed 's/{params.prefix}//g' | samtools view -bh -@ {threads} -o {output} -) &> {log}
         """
 

@@ -61,10 +61,10 @@ def selectchrom(wc):
 
 include: "rules/net-seq_clean_reads.smk"
 include: "rules/net-seq_alignment.smk"
+include: "rules/net-seq_genome_coverage.smk"
 # include: "rules/net-seq_datavis.smk"
 # include: "rules/net-seq_differential_levels.smk"
 # include: "rules/net-seq_fastqc.smk"
-# include: "rules/net-seq_genome_coverage.smk"
 # include: "rules/net-seq_library_processing_summary.smk"
 # include: "rules/net-seq_sample_similarity.smk"
 
@@ -88,6 +88,7 @@ rule all:
         #alignment
         expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES),
         #coverage
+        expand("coverage/{counttype}/{sample}_netseq-{readtype}-{counttype}-{strand}.bedgraph", counttype=COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["plus", "minus"]),
         # expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         # expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         ## #quality control
