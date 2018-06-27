@@ -9,7 +9,7 @@ extract molecular barcode from reads and write out barcode and ligation counts
 use: python extract_molecular_barcode.py in_fastq out_fastq out_barcode out_ligation
 """
 
-def main:
+def main():
     import sys, itertools, gzip
     from collections import Counter
 

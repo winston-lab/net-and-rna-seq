@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+
 import os
 from math import log2
-# from math import log10
 import itertools
 
 configfile: "config.yaml"
@@ -18,10 +18,55 @@ if SIPASSING:
     controlgroups_si = [v for k,v in config["comparisons"]["spikenorm"].items()]
     conditiongroups_si = [k for k,v in config["comparisons"]["spikenorm"].items()]
 
-# CATEGORIES = ["genic", "intragenic", "intergenic", "antisense", "convergent", "divergent"]
 COUNTTYPES = ["counts", "sicounts"] if SISAMPLES else ["counts"]
 NORMS = ["libsizenorm", "spikenorm"] if SISAMPLES else ["libsizenorm"]
+
 FIGURES = config["figures"]
+
+status_norm_sample_dict = {
+    "all":
+        {   "libsizenorm" : SAMPLES,
+            "spikenorm" : SISAMPLES
+        },
+    "passing":
+        {   "libsizenorm" : PASSING,
+            "spikenorm" : SIPASSING
+        }
+    }
+
+def get_samples(status, norm, groups):
+    if "all" in groups:
+        return(list(status_norm_sample_dict[status][norm].keys()))
+    else:
+        return([k for k,v in status_norm_sample_dict[status][norm].items() if v["group"] in groups])
+
+def cluster_samples(status, norm, cluster_groups, cluster_strands):
+    ll = []
+    for group, strand in zip(cluster_groups, cluster_strands):
+        sublist = [k for k,v in status_norm_sample_dict[status][norm].items() if v["group"] in cluster_groups]
+        if strand in ["sense", "both"]:
+            ll.append([f"{sample}-sense" for sample in sublist])
+        if strand in ["antisense", "both"]:
+            ll.append([f"{sample}-antisense" for sample in sublist])
+    return(list(itertools.chain(*ll)))
+
+def selectchrom(wc):
+    if wc.strand in ["plus", "minus"]:
+        if wc.norm=="sicounts":
+            return config["genome"]["sichrsizes"]
+        return config["genome"]["chrsizes"]
+    if wc.norm=="sicounts":
+        return os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv"
+    return os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv"
+
+include: "rules/net-seq_clean_reads.smk"
+include: "rules/net-seq_alignment.smk"
+# include: "rules/net-seq_datavis.smk"
+# include: "rules/net-seq_differential_levels.smk"
+# include: "rules/net-seq_fastqc.smk"
+# include: "rules/net-seq_genome_coverage.smk"
+# include: "rules/net-seq_library_processing_summary.smk"
+# include: "rules/net-seq_sample_similarity.smk"
 
 localrules:
     all,
@@ -42,9 +87,9 @@ rule all:
         #'qual_ctrl/fastqc/per_base_sequence_content.svg',
         #alignment
         expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES),
-        ##coverage
-        #expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
-        #expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
+        #coverage
+        # expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
+        # expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
         ## #quality control
         #"qual_ctrl/read_processing-loss.svg",
         #expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if SISAMPLES else [],
@@ -58,41 +103,6 @@ rule all:
         #expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
         ## expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
         #expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups) + expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES else expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups)
-
-def plotcorrsamples(wc):
-    dd = SAMPLES if wc.status=="all" else PASSING
-    if wc.condition=="all":
-        if wc.norm=="libsizenorm": #condition==all,norm==lib
-            return list(SAMPLES.keys())
-        else: #condition==all,norm==spike
-            return list(SISAMPLES.keys())
-    elif wc.norm=="libsizenorm": #condition!=all;norm==lib
-        return [k for k,v in PASSING.items() if v["group"] in [wc.control, wc.condition]]
-    else: #condition!=all;norm==spike
-        return [k for k,v in SIPASSING.items() if v["group"] in [wc.control, wc.condition]]
-
-def cluster_samples(status, norm, cluster_groups, cluster_strands):
-    ll = []
-    dd = SAMPLES if status=="all" else PASSING
-    for group, strand in zip(cluster_groups, cluster_strands):
-        sublist = [k for k,v in dd.items() if v["group"]==group] if norm=="libsizenorm" else [k for k,v in dd.items() if v["group"]==group and v["spikein"]=="y"]
-        if strand in ["sense", "both"]:
-            ll.append([sample + "-" + "sense" for sample in sublist])
-        if strand in ["antisense", "both"]:
-            ll.append([sample + "-" + "antisense" for sample in sublist])
-    return(list(itertools.chain(*ll)))
-
-def getsamples(ctrl, cond):
-    return [k for k,v in PASSING.items() if v["group"] in [ctrl, cond]]
-
-def selectchrom(wc):
-    if wc.strand in ["plus", "minus"]:
-        if wc.norm=="sicounts":
-            return config["genome"]["sichrsizes"]
-        return config["genome"]["chrsizes"]
-    if wc.norm=="sicounts":
-        return os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv"
-    return os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv"
 
 rule make_stranded_genome:
     input:
@@ -204,14 +214,4 @@ rule cat_direction_counts:
     shell: """
         (cat {input} > {output}) &> {log}
         """
-
-include: "rules/net-seq_clean_reads.smk"
-include: "rules/net-seq_alignment.smk"
-
-# include: "rules/net-seq_datavis.smk"
-# include: "rules/net-seq_differential_levels.smk"
-# # include: "rules/net-seq_fastqc.smk"
-# include: "rules/net-seq_genome_coverage.smk"
-# include: "rules/net-seq_library_processing_summary.smk"
-# include: "rules/net-seq_sample_similarity.smk"
 
