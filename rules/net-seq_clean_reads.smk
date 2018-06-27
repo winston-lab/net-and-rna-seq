@@ -14,7 +14,7 @@ rule clean_reads:
         (cutadapt --cores={threads} --adapter={params.adapter} --cut=-1 --trim-n --nextseq-trim={params.trim_qual} --length-tag='length=' --minimum-length=12 --output={output.fastq} {input}) &> {output.log}
         """
 
-rule remove_molec_barcode:
+rule extract_molec_barcode:
     input:
         "fastq/cleaned/{sample}_net-seq-trimmed.fastq.gz",
     output:

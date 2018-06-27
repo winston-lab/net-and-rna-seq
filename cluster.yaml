@@ -12,7 +12,7 @@ clean_reads:
     n: 2
     mem : 2000
 
-remove_molec_barcode:
+extract_molec_barcode:
     time : 45
     mem : 2000
 
@@ -29,9 +29,6 @@ select_unique_mappers:
 remove_PCR_duplicates:
     time : 180
     mem : 2000
-
-
-
 
 fastqc_raw:
     time : 15
