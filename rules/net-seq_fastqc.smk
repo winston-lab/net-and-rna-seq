@@ -17,7 +17,7 @@ rule fastqc_prealignment:
     wildcard_constraints:
         read_status="raw|trimmed|clean"
     threads : config["threads"]
-    log: "logs/fastqc/fastqc_{read_status}-{sample}.log"
+    log: "logs/fastqc/fastqc_{read_status}_{sample}.log"
     shell: """
         (mkdir -p qual_ctrl/fastqc/{wildcards.read_status}) &> {log}
         (fastqc --adapters <(echo -e "adapter\t{params.adapter}") --nogroup --noextract -t {threads} -o qual_ctrl/fastqc/{wildcards.read_status} {input}) &>> {log}
@@ -38,7 +38,7 @@ rule fastqc_postalignment:
     wildcard_constraints:
         read_status="aligned_noPCRdup|unique_mappers|unaligned"
     threads : config["threads"]
-    log: "logs/fastqc/fastqc_{read_status}-{sample}.log"
+    log: "logs/fastqc/fastqc_{read_status}_{sample}.log"
     shell: """
         (mkdir -p qual_ctrl/fastqc/{wildcards.read_status}) &> {log}
         (bedtools bamtofastq -fq qual_ctrl/fastqc/{wildcards.read_status}/{params.fname}.fastq -i {input}) &>> {log}
