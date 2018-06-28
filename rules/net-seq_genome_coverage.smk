@@ -21,7 +21,7 @@ rule genome_coverage:
         counttype="counts|sicounts"
     log: "logs/genome_coverage/genome_coverage_{sample}-{counttype}-{readtype}-{strand}.log"
     shell: """
-        (genomeCoverageBed -bga {params.end} -strand {params.strand} {params.split} -ibam {input} > {output}) &> {log}
+        (bedtools genomecov -bga {params.end} -strand {params.strand} {params.split} -ibam {input} > {output}) &> {log}
         """
 
 # rule normalize:

@@ -61,7 +61,7 @@ plot_read_processing:
     mem: 4000
 
 genome_coverage:
-    time : 60
+    time : 15
     mem : 2000
 
 normalize:
