@@ -54,14 +54,13 @@ include: "rules/net-seq_clean_reads.smk"
 include: "rules/net-seq_alignment.smk"
 include: "rules/net-seq_genome_coverage.smk"
 include: "rules/net-seq_fastqc.smk"
+include: "rules/net-seq_library_processing_summary.smk"
 # include: "rules/net-seq_datavis.smk"
 # include: "rules/net-seq_differential_levels.smk"
-# include: "rules/net-seq_library_processing_summary.smk"
 # include: "rules/net-seq_sample_similarity.smk"
 
 localrules:
     all,
-    get_si_pct, plot_si_pct,
     make_stranded_genome, make_stranded_annotations,
     cat_matrices,
     make_ratio_annotation, cat_ratio_counts,
@@ -80,9 +79,9 @@ rule all:
         #coverage
         expand("coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
         expand("coverage/{norm}/{sample}-netseq-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
-        ## #quality control
-        #"qual_ctrl/read_processing-loss.svg",
-        #expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if SISAMPLES else [],
+        #quality control
+        "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
+        expand("qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg", status=["all", "passing"]) if SISAMPLES else [],
         #expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-{{ptype}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations", "pca"]) +
         #expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-{{ptype}}.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations","pca"]) if SISAMPLES else
         #expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-{{ptype}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations", "pca"]),

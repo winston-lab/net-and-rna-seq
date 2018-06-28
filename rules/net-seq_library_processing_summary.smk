@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 
-rule read_processing_numbers:
+localrules:
+    aggregate_read_numbers,
+    build_spikein_counts_table,
+    plot_spikein_pct
+
+rule aggregate_read_numbers:
     input:
         adapter = expand("logs/clean_reads/clean_reads-{sample}.log", sample=SAMPLES),
         align = expand("alignment/{sample}/align_summary.txt", sample=SAMPLES),
-        nodups = expand("alignment/{sample}-noPCRdup.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}-unique.bam", sample=SAMPLES)
+        nodups = expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES)
     output:
-        "qual_ctrl/read_processing_summary.tsv"
-    log: "logs/read_processing_summary.log"
+        "qual_ctrl/read_processing/net-seq_read-processing-summary.tsv"
+    log: "logs/aggregate_read_numbers.log"
     run:
         shell("""(echo -e "sample\traw\tcleaned\tmapped\tunique_map\tnoPCRdup" > {output}) &> {log}""")
         for sample, adapter, align, nodups in zip(SAMPLES.keys(), input.adapter, input.align, input.nodups):
@@ -18,36 +23,37 @@ rule read_processing_numbers:
 
 rule plot_read_processing:
     input:
-        "qual_ctrl/read_processing_summary.tsv"
+        "qual_ctrl/read_processing/net-seq_read-processing-summary.tsv"
     output:
-        surv_abs_out = "qual_ctrl/read_processing-survival-absolute.svg",
-        surv_rel_out = "qual_ctrl/read_processing-survival-relative.svg",
-        loss_out  = "qual_ctrl/read_processing-loss.svg",
-    script: "scripts/processing_summary.R"
+        surv_abs_out = "qual_ctrl/read_processing/net-seq_read-processing-survival-absolute.svg",
+        surv_rel_out = "qual_ctrl/read_processing/net-seq_read-processing-survival-relative.svg",
+        loss_out  = "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
+    script: "../scripts/processing_summary.R"
 
-rule get_si_pct:
+rule build_spikein_counts_table:
     input:
-        plmin = expand("coverage/counts/{sample}-netseq-counts-5end-plmin.bedgraph", sample=SISAMPLES),
-        SIplmin = expand("coverage/sicounts/{sample}-netseq-sicounts-5end-plmin.bedgraph", sample=SISAMPLES)
+        total_bam = expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SISAMPLES),
+        exp_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-experimental.bam", samples=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-experimental.bam", samples=SISAMPLES),
+        si_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-spikein.bam", samples=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-spikein.bam", samples=SISAMPLES),
+    output:
+        "qual_ctrl/spikein/net-seq_spikein-counts.tsv"
     params:
-        group = [v["group"] for k,v in SISAMPLES.items()]
-    output:
-        "qual_ctrl/all/spikein-counts.tsv"
-    log: "logs/get_si_pct.log"
+        groups = [v["group"] for k,v in SISAMPLES.items()]
+    log: "logs/build_spikein_counts_table.log"
     run:
-        shell("rm -f {output}")
-        for name, exp, si, g in zip(SISAMPLES.keys(), input.plmin, input.SIplmin, params.group):
-            shell("""(echo -e "{name}\t{g}\t" $(awk 'BEGIN{{FS=OFS="\t"; ex=0; si=0}}{{if(NR==FNR){{si+=$4}} else{{ex+=$4}}}} END{{print ex+si, ex, si}}' {si} {exp}) >> {output}) &> {log}""")
+        shell("""(echo -e "sample\tgroup\ttotal_counts\texperimental_counts\tspikein_counts" > {output}) &> {log} """)
+        for sample, group, total, exp, si in zip(SISAMPLES.keys(), params.groups, input.total_bam, input.exp_bam, input.si_bam):
+            shell("""(paste <(echo -e "{sample}\t{group}") <(samtools view -c {total}) <(samtools view -c {exp}) <(samtools view -c {si}) >> {output}) &>> {log} """)
 
-rule plot_si_pct:
+rule plot_spikein_pct:
     input:
-        "qual_ctrl/all/spikein-counts.tsv"
+        "qual_ctrl/spikein/net-seq_spikein-counts.tsv"
     output:
-        plot = "qual_ctrl/{status}/{status}-spikein-plots.svg",
-        stats = "qual_ctrl/{status}/{status}-spikein-stats.tsv"
+        plot = "qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg",
+        stats = "qual_ctrl/spikein/net-seq_spikein-stats-{status}.tsv"
     params:
         samplelist = lambda wc : list(SISAMPLES.keys()) if wc.status=="all" else list(SIPASSING.keys()),
-        conditions = conditiongroups_si if SISAMPLES else [],
-        controls = controlgroups_si if SISAMPLES else [],
-    script: "scripts/plotsipct.R"
+        conditions = [] if not SISAMPLES else conditiongroups_si,
+        controls = [] if not SISAMPLES else controlgroups_si,
+    script: "../scripts/plot_si_pct.R"
 
