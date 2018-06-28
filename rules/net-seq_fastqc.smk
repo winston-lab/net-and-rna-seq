@@ -108,9 +108,10 @@ rule fastqc_aggregate:
         for fastqc_metric, out_path in output.items():
             title = fastqc_dict[fastqc_metric]["title"]
             fields = fastqc_dict[fastqc_metric]["fields"]
-            for read_status, read_status_data in zip(tags, input.values()):
-                for sample_id, fastqc_data in zip(SAMPLES.keys(), read_status_data):
-                    shell("""awk 'BEGIN{{FS=OFS="\t"}} /{title}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, "{sample_id}", "{read_status}"}}' {fastqc_data} | tail -n +2 >> {out_path}""")
+            for index, read_status_data in enumerate(input.items()):
+                tag = tags[index]
+                for sample_id, fastqc_data in zip(SAMPLES.keys(), read_status_data[1]):
+                    shell("""awk 'BEGIN{{FS=OFS="\t"}} /{title}/{{flag=1;next}}/>>END_MODULE/{{flag=0}} flag {{print $0, "{sample_id}", "{tag}"}}' {fastqc_data} | tail -n +2 >> {out_path}""")
             shell("""sed -i "1i {fields}" {out_path}""")
 
 rule plot_fastqc_summary:
