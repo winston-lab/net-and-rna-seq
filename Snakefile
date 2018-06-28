@@ -53,15 +53,14 @@ def cluster_samples(status, norm, cluster_groups, cluster_strands):
 include: "rules/net-seq_clean_reads.smk"
 include: "rules/net-seq_alignment.smk"
 include: "rules/net-seq_genome_coverage.smk"
+include: "rules/net-seq_fastqc.smk"
 # include: "rules/net-seq_datavis.smk"
 # include: "rules/net-seq_differential_levels.smk"
-# include: "rules/net-seq_fastqc.smk"
 # include: "rules/net-seq_library_processing_summary.smk"
 # include: "rules/net-seq_sample_similarity.smk"
 
 localrules:
     all,
-    fastqc_aggregate,
     get_si_pct, plot_si_pct,
     make_stranded_genome, make_stranded_annotations,
     cat_matrices,
@@ -74,8 +73,8 @@ onsuccess:
 
 rule all:
     input:
-        ##FastQC
-        #'qual_ctrl/fastqc/per_base_sequence_content.svg',
+        #FastQC
+        'qual_ctrl/fastqc/net-seq-per_base_sequence_content.svg',
         #alignment
         expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES),
         #coverage

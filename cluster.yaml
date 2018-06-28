@@ -30,19 +30,14 @@ remove_PCR_duplicates:
     time : 180
     mem : 2000
 
-fastqc_raw:
+fastqc_prealignment:
     time : 15
-    n : 1
+    n : 2
     mem : 4000
 
-fastqc_cleaned:
-    time : 10
-    n : 1
-    mem : 4000
-
-fastqc_aligned:
+fastqc_postalignment:
     time : 20
-    n : 1
+    n : 2
     mem : 4000
 
 plot_fastqc_summary:
@@ -69,7 +64,7 @@ normalize_genome_coverage:
     mem : 2000
 
 make_stranded_bedgraph:
-    time: 3
+    time: 5
     mem: 1000
 
 bedgraph_to_bigwig:
