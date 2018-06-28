@@ -61,19 +61,19 @@ plot_read_processing:
     mem: 4000
 
 genome_coverage:
-    time : 15
+    time : 5
     mem : 2000
 
-normalize:
-    time : 60
+normalize_genome_coverage:
+    time : 3
     mem : 2000
 
 make_stranded_bedgraph:
-    time: 10
+    time: 3
     mem: 1000
 
-bg_to_bw:
-    time: 10
+bedgraph_to_bigwig:
+    time: 2
     mem: 1000
 
 compute_matrix:

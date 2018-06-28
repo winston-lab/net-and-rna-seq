@@ -50,15 +50,6 @@ def cluster_samples(status, norm, cluster_groups, cluster_strands):
             ll.append([f"{sample}-antisense" for sample in sublist])
     return(list(itertools.chain(*ll)))
 
-def selectchrom(wc):
-    if wc.strand in ["plus", "minus"]:
-        if wc.norm=="sicounts":
-            return config["genome"]["sichrsizes"]
-        return config["genome"]["chrsizes"]
-    if wc.norm=="sicounts":
-        return os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv"
-    return os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv"
-
 include: "rules/net-seq_clean_reads.smk"
 include: "rules/net-seq_alignment.smk"
 include: "rules/net-seq_genome_coverage.smk"
@@ -88,9 +79,8 @@ rule all:
         #alignment
         expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES),
         #coverage
-        expand("coverage/{counttype}/{sample}_netseq-{readtype}-{counttype}-{strand}.bedgraph", counttype=COUNTTYPES, sample=SAMPLES, readtype=["5end", "wholeread"], strand=["plus", "minus"]),
-        # expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
-        # expand("coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.{fmt}", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], fmt=["bedgraph", "bw"]),
+        expand("coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
+        expand("coverage/{norm}/{sample}-netseq-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
         ## #quality control
         #"qual_ctrl/read_processing-loss.svg",
         #expand("qual_ctrl/{status}/{status}-spikein-plots.svg", status=["all", "passing"]) if SISAMPLES else [],
