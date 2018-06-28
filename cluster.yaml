@@ -67,7 +67,7 @@ bedgraph_to_bigwig:
     mem: 1000
 
 compute_matrix:
-    time : 60
+    time : 15
     mem : 2000
 
 plot_figures:
@@ -86,25 +86,25 @@ plot_scatter_plots:
     time : 20
     mem : 8000
 
-pca_and_cluster:
-    time : 120
-    mem : 24000
-
-ratio_counts:
-    time: 10
-    mem: 4000
-
-plot_ratios:
-    time: 20
-    mem: 6000
-
-direction_counts:
-    time: 30
-    mem: 4000
-
-call_de_transcripts:
+call_diffexp_transcripts:
     time: 10
     mem: 10000
+
+# pca_and_cluster:
+#     time : 120
+#     mem : 24000
+
+# ratio_counts:
+#     time: 10
+#     mem: 4000
+
+# plot_ratios:
+#     time: 20
+#     mem: 6000
+
+# direction_counts:
+#     time: 30
+#     mem: 4000
 
 # summarise_de_results:
 #     time: 15

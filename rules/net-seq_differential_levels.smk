@@ -1,52 +1,54 @@
 #!/usr/bin/env python
 
+localrules:
+    map_counts_to_transcripts,
+    combine_transcript_counts
+
 rule map_counts_to_transcripts:
     input:
-        bed = lambda wc: config["genome"]["transcripts"] if wc.type=="exp" else config["genome"]["spikein-transcripts"],
-        bg = lambda wc: "coverage/counts/" + wc.sample + "-netseq-counts-5end-SENSE.bedgraph" if wc.type=="exp" else "coverage/sicounts/" + wc.sample + "-netseq-sicounts-5end-SENSE.bedgraph"
+        bed = lambda wc: config["genome"]["transcripts"] if wc.species=="experimental" else config["genome"]["spikein-transcripts"],
+        bg = lambda wc: f"coverage/counts/{wc.sample}_netseq-5end-counts-SENSE.bedgraph" if wc.species=="experimental" else f"coverage/sicounts/{wc.sample}_netseq-5end-sicounts-SENSE.bedgraph"
     output:
-        temp("diff_exp/{condition}-v-{control}/{sample}-{type}-alltranscriptcounts.tsv")
-    log: "logs/map_counts_to_transcripts/map_counts_to_transcripts-{condition}-v-{control}-{sample}-{type}.log"
+        temp("diff_exp/{condition}-v-{control}/{sample}_{species}-transcript-counts.tsv")
+    log: "logs/map_counts_to_transcripts/map_counts_to_transcripts_{condition}-v-{control}_{sample}-{species}.log"
     shell: """
         (bash scripts/makeStrandedBed.sh {input.bed} | LC_COLLATE=C sort -k1,1 -k2,2n | bedtools map -a stdin -b {input.bg} -c 4 -o sum | awk 'BEGIN{{FS=OFS="\t"}}{{print $4"~"$1"~"$2"~"$3, $7}}' &> {output}) &> {log}
         """
 
-rule get_transcript_counts:
+rule combine_transcript_counts:
     input:
-        lambda wc : ["diff_exp/" + wc.condition + "-v-" + wc.control + "/" + x + "-" + wc.type + "-alltranscriptcounts.tsv" for x in getsamples(wc.control, wc.condition)]
+        lambda wc : ["diff_exp/{condition}-v-{control}/".format(**wc) + x + f"_{wc.species}-transcript-counts.tsv" for x in get_samples("passing", "libsizenorm", [wc.control, wc.condition])]
     output:
-        "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{type}-transcript-counts.tsv"
+        "diff_exp/{condition}-v-{control}/{condition}-v-{control}-{species}-allsample-transcript-counts.tsv"
     params:
-        n = lambda wc: 2*len(getsamples(wc.control, wc.condition)),
-        names = lambda wc: "\t".join(getsamples(wc.control, wc.condition))
-    log: "logs/get_transcript_counts/get_transcript_counts-{condition}-v-{control}-{type}.log"
+        n = lambda wc: 2*len(get_samples("passing", "libsizenorm", [wc.control, wc.condition])),
+        names = lambda wc: "\t".join(get_samples("passing", "libsizenorm", [wc.control, wc.condition]))
+    log: "logs/combine_transcript_counts/combine_transcript_counts-{condition}-v-{control}-{species}.log"
     shell: """
         (paste {input} | cut -f$(paste -d, <(echo "1") <(seq -s, 2 2 {params.n})) | cat <(echo -e "name\t" "{params.names}" ) - > {output}) &> {log}
         """
 
-rule call_de_transcripts:
+rule call_diffexp_transcripts:
     input:
-        expcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-exp-transcript-counts.tsv",
-        sicounts = lambda wc: "diff_exp/" + wc.condition + "-v-" + wc.control + "/" + wc.condition + "-v-" + wc.control + "-si-transcript-counts.tsv" if wc.norm=="spikenorm" else "diff_exp/" + wc.condition + "-v-" + wc.control + "/" + wc.condition + "-v-" + wc.control + "-exp-transcript-counts.tsv"
+        expcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-experimental-allsample-transcript-counts.tsv",
+        sicounts = lambda wc: [] if wc.norm=="libsizenorm" else "diff_exp/{condition}-v-{control}/{condition}-v-{control}-spikein-allsample-transcript-counts.tsv".format(**wc)
+    output:
+        results_all = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-all.tsv",
+        results_up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-up.tsv",
+        results_down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-down.tsv",
+        results_unch = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-unch.tsv",
+        bed_all = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-all.bed",
+        bed_up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-up.bed",
+        bed_down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-down.bed",
+        bed_unch = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-{norm}-unch.bed",
+        normcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-counts-sfnorm-{norm}.tsv",
+        rldcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-counts-rlog-{norm}.tsv",
+        qcplots = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-qcplots-{norm}.svg"
     params:
-        samples = lambda wc : getsamples(wc.control, wc.condition),
-        groups = lambda wc : [PASSING[x]["group"] for x in getsamples(wc.control, wc.condition)],
+        samples = lambda wc : get_samples("passing", wc.norm, [wc.control, wc.condition]),
+        groups = lambda wc : [PASSING[x]["group"] for x in get_samples("passing", wc.norm, [wc.control, wc.condition])],
         alpha = config["deseq"]["fdr"],
         lfc = log2(config["deseq"]["fold-change-threshold"])
-    output:
-        results_all = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.tsv",
-        results_up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-up.tsv",
-        results_down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-down.tsv",
-        results_unch = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-unch.tsv",
-        bed_all = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-all.bed",
-        bed_up = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-up.bed",
-        bed_down = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-down.bed",
-        bed_unch = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-results-{norm}-unch.bed",
-        normcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-counts-sfnorm-{norm}.tsv",
-        rldcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-counts-rlog-{norm}.tsv",
-        qcplots = "diff_exp/{condition}-v-{control}/{condition}-v-{control}-qcplots-{norm}.svg"
     script:
-        "scripts/call_de_transcripts.R"
-
-
+        "../scripts/call_diffexp_transcripts.R"
 

@@ -1,19 +1,23 @@
 #!/usr/bin/env python
 
-# rule make_stranded_annotations:
-#     input:
-#         lambda wc : FIGURES[wc.figure]["annotations"][wc.annotation]["path"]
-#     output:
-#         "{annopath}/stranded/{figure}_{annotation}-STRANDED.{ext}"
-#     log : "logs/make_stranded_annotations/make_stranded_annotations-{figure}_{annotation}_{ext}.log"
-#     shell: """
-#         (bash scripts/makeStrandedBed.sh {input} > {output}) &> {log}
-#         """
+localrules:
+    make_stranded_annotations,
+    cat_matrices
+
+rule make_stranded_annotations:
+    input:
+        lambda wc : FIGURES[wc.figure]["annotations"][wc.annotation]["path"]
+    output:
+        "datavis/{figure}/{annotation}.bed"
+    log : "logs/make_stranded_annotations/make_stranded_annotations-{figure}-{annotation}.log"
+    shell: """
+        (bash scripts/makeStrandedBed.sh {input} > {output}) &> {log}
+        """
 
 rule compute_matrix:
     input:
-        # annotation = lambda wc: os.path.dirname(FIGURES[wc.figure]["annotations"][wc.annotation]["path"]) + "/stranded/" + wc.figure + "_" + wc.annotation + "-STRANDED" + os.path.splitext(FIGURES[wc.figure]["annotations"][wc.annotation]["path"])[1],
-        bw = "coverage/{norm}/{sample}-netseq-{norm}-{readtype}-{strand}.bw"
+        annotation = "datavis/{figure}/{annotation}.bed",
+        bw = "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw"
     output:
         dtfile = temp("datavis/{figure}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.mat.gz"),
         matrix = temp("datavis/{figure}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.tsv"),
@@ -29,7 +33,7 @@ rule compute_matrix:
         nan_afterend = lambda wc: [] if FIGURES[wc.figure]["parameters"]["type"]=="scaled" or not FIGURES[wc.figure]["parameters"]["nan_afterend"] else "--nanAfterEnd",
         anno_label = lambda wc: FIGURES[wc.figure]["annotations"][wc.annotation]["label"]
     threads : config["threads"]
-    log: "logs/compute_matrix/compute_matrix-{figure}_{annotation}_{sample}_{norm}-{strand}.log"
+    log: "logs/compute_matrix/compute_matrix-{figure}_{annotation}_{sample}_{norm}-{readtype}-{strand}.log"
     run:
         if FIGURES[wildcards.figure]["parameters"]["type"]=="absolute":
             shell("""(computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} {params.nan_afterend} --binSize {params.binsize} --averageTypeBins {params.binstat} -p {threads}) &> {log}""")
@@ -82,9 +86,9 @@ rule plot_figures:
         metagene_groupclust_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-antisense.svg",
     params:
         # abusing snakemake a bit here...using params as output paths in order to use lambda functions
-        annotations_out = lambda wc: ["datavis/" + wc.figure + "/" + wc.norm + "/" + wc.condition + "-v-" + wc.control + "/" + wc.status + "/" + wc.readtype + "/" + annotation + "_cluster-" + str(cluster) + ".bed" for annotation in FIGURES[wc.figure]["annotations"] for cluster in range(1, FIGURES[wc.figure]["annotations"][annotation]["n_clusters"]+1)],
-        clusters_out = lambda wc: ["datavis/" + wc.figure + "/" + wc.norm + "/" + wc.condition + "-v-" + wc.control + "/" + wc.status + "/" + wc.readtype + "/" + annotation + ".pdf" for annotation in FIGURES[wc.figure]["annotations"]],
-        samplelist = plotcorrsamples,
+        annotations_out = lambda wc: ["datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/".format(**wc) + annotation + "_cluster-" + str(cluster) + ".bed" for annotation in FIGURES[wc.figure]["annotations"] for cluster in range(1, FIGURES[wc.figure]["annotations"][annotation]["n_clusters"]+1)],
+        clusters_out = lambda wc: ["datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/".format(**wc) + annotation + ".pdf" for annotation in FIGURES[wc.figure]["annotations"]],
+        samplelist = lambda wc: get_samples(wc.status, wc.norm, [wc.condition, wc.control]),
         plottype = lambda wc: FIGURES[wc.figure]["parameters"]["type"],
         upstream = lambda wc: FIGURES[wc.figure]["parameters"]["upstream"],
         dnstream = lambda wc: FIGURES[wc.figure]["parameters"]["dnstream"],
@@ -92,7 +96,7 @@ rule plot_figures:
         pct_cutoff = lambda wc: FIGURES[wc.figure]["parameters"]["pct_cutoff"],
         log_transform = lambda wc: str(FIGURES[wc.figure]["parameters"]["log_transform"]).upper(),
         pcount = lambda wc: 0 if not FIGURES[wc.figure]["parameters"]["log_transform"] else FIGURES[wc.figure]["parameters"]["pseudocount"],
-        meta_spread = lambda wc: FIGURES[wc.figure]["parameters"]["meta_spread"],
+        spread_type = lambda wc: FIGURES[wc.figure]["parameters"]["spread_type"],
         trim_pct = lambda wc: FIGURES[wc.figure]["parameters"]["trim_pct"],
         refpointlabel = lambda wc: FIGURES[wc.figure]["parameters"]["refpointlabel"],
         endlabel = lambda wc:  "HAIL SATAN" if FIGURES[wc.figure]["parameters"]["type"]=="absolute" else FIGURES[wc.figure]["parameters"]["three_prime_label"],
@@ -104,5 +108,5 @@ rule plot_figures:
         cluster_three = lambda wc: [] if FIGURES[wc.figure]["parameters"]["arrange"] != "cluster" else FIGURES[wc.figure]["parameters"]["cluster_three"],
         k = lambda wc: [v["n_clusters"] for k,v in FIGURES[wc.figure]["annotations"].items()],
     script:
-        "scripts/plot_netseq_figures.R"
+        "../scripts/plot_netseq_figures.R"
 
