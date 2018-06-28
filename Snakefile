@@ -55,9 +55,9 @@ include: "rules/net-seq_alignment.smk"
 include: "rules/net-seq_genome_coverage.smk"
 include: "rules/net-seq_fastqc.smk"
 include: "rules/net-seq_library_processing_summary.smk"
+include: "rules/net-seq_sample_similarity.smk"
 # include: "rules/net-seq_datavis.smk"
 # include: "rules/net-seq_differential_levels.smk"
-# include: "rules/net-seq_sample_similarity.smk"
 
 localrules:
     all,
@@ -82,6 +82,8 @@ rule all:
         #quality control
         "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
         expand("qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg", status=["all", "passing"]) if SISAMPLES else [],
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["corr-windowsizes"]),
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["corr-windowsizes"]) if SISAMPLES else [],
         #expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-{{ptype}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations", "pca"]) +
         #expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-spikenorm-{{ptype}}.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations","pca"]) if SISAMPLES else
         #expand(expand("qual_ctrl/{{status}}/{condition}-v-{control}/{condition}-v-{control}-netseq-{{status}}-window-{{windowsize}}-libsizenorm-{{ptype}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status = ["all", "passing"], windowsize=config["corr-windowsizes"], ptype=["correlations", "pca"]),

@@ -75,16 +75,16 @@ plot_figures:
     mem : 24000
 
 map_to_windows:
-    time: 15
+    time: 4
     mem: 2000
 
 join_window_counts:
-    time: 30
+    time: 5
     mem: 4000
 
-plotcorrelations:
-    time : 45
-    mem : 12000
+plot_scatter_plots:
+    time : 20
+    mem : 8000
 
 pca_and_cluster:
     time : 120
