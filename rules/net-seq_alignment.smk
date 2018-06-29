@@ -13,7 +13,6 @@ rule bowtie2_build:
         expand(config["tophat2"]["bowtie2-index-path"] + "/{{basename}}.rev.{num}.bt2", num=[1,2])
     params:
         idx_path = config["tophat2"]["bowtie2-index-path"],
-        prefix = config["combinedgenome"]["experimental_prefix"]
     log: "logs/bowtie2_build_{basename}.log"
     shell: """
         (bowtie2-build {input.fasta} {params.idx_path}/{wildcards.basename}) &> {log}
@@ -21,8 +20,8 @@ rule bowtie2_build:
 
 rule align:
     input:
-        expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".{num}.bt2", num = [1,2,3,4]) if SISAMPLES else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".{num}.bt2", num = [1,2,3,4]),
-        expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["combinedgenome"]["name"] + ".rev.{num}.bt2", num=[1,2]) if SISAMPLES else expand(config["tophat2"]["bowtie2-index-path"] + "/" + config["genome"]["name"] + ".rev.{num}.bt2", num=[1,2]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["combinedgenome"]["name"] if SISAMPLES else config["genome"]["name"]) + ".{num}.bt2", num = [1,2,3,4]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["combinedgenome"]["name"] if SISAMPLES else config["genome"]["name"]) + ".rev.{num}.bt2", num=[1,2]),
         fastq = "fastq/cleaned/{sample}_net-seq-clean.fastq.gz" if config["random-hexamer"] else "fastq/cleaned/{sample}_net-seq-trimmed.fastq.gz"
     output:
         aligned = "alignment/{sample}/accepted_hits.bam",
