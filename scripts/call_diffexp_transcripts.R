@@ -212,3 +212,4 @@ qc = call_de_bases(intable = snakemake@input[["expcounts"]],
                    normcounts = snakemake@output[["normcounts"]],
                    rldcounts = snakemake@output[["rldcounts"]],
                    qcplots = snakemake@output[["qcplots"]])
+

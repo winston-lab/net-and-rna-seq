@@ -134,5 +134,6 @@ rule plot_fastqc_summary:
         per_seq_qual = 'qual_ctrl/fastqc/net-seq-per_sequence_quality.svg',
         adapter_content = 'qual_ctrl/fastqc/net-seq-adapter_content.svg',
         seq_dup = 'qual_ctrl/fastqc/net-seq-sequence_duplication_levels.svg',
+    conda: "../envs/tidyverse.yaml"
     script: "../scripts/fastqc_summary.R"
 

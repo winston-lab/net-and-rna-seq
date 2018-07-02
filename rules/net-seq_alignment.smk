@@ -13,6 +13,7 @@ rule bowtie2_build:
         expand(config["tophat2"]["bowtie2-index-path"] + "/{{basename}}.rev.{num}.bt2", num=[1,2])
     params:
         idx_path = config["tophat2"]["bowtie2-index-path"],
+    conda: "../envs/tophat2.yaml"
     log: "logs/bowtie2_build_{basename}.log"
     shell: """
         (bowtie2-build {input.fasta} {params.idx_path}/{wildcards.basename}) &> {log}
@@ -46,8 +47,7 @@ rule align:
         max_coverage_intron = config["tophat2"]["max-coverage-intron"],
         min_segment_intron = config["tophat2"]["min-segment-intron"],
         max_segment_intron = config["tophat2"]["max-segment-intron"],
-    conda:
-        "../envs/tophat2.yaml"
+    conda: "../envs/tophat2.yaml"
     threads : config["threads"]
     log: "logs/align/align-{sample}.log"
     shell:
