@@ -3,12 +3,12 @@
 rule map_to_windows:
     input:
         bg = "coverage/{norm}/{sample}_netseq-5end-{norm}-SENSE.bedgraph",
-        chrsizes = os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv",
+        fasta = config["genome"]["fasta"]
     output:
         temp("qual_ctrl/scatter_plots/net-seq_{sample}-{norm}-window-{windowsize}.bedgraph")
     log: "logs/map_to_windows/map_to_windows-{norm}_{sample}_{windowsize}.log"
     shell: """
-        (bedtools makewindows -g {input.chrsizes} -w {wildcards.windowsize} | LC_COLLATE=C sort -k1,1 -k2,2n | bedtools map -a stdin -b {input.bg} -c 4 -o sum > {output}) &> {log}
+        (bedtools makewindows -g <(faidx {input.fasta} -i chromsizes | awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2; print $1"-minus", $2}}' | LC_COLLATE=C sort -k1,1) -w {wildcards.windowsize} | LC_COLLATE=C sort -k1,1 -k2,2n | bedtools map -a stdin -b {input.bg} -c 4 -o sum > {output}) &> {log}
         """
 
 rule join_window_counts:

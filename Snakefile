@@ -61,7 +61,6 @@ include: "rules/net-seq_differential_levels.smk"
 
 localrules:
     all,
-    make_stranded_genome,
     # make_ratio_annotation,
     # cat_ratio_counts,
     # cat_direction_counts
@@ -90,19 +89,6 @@ rule all:
         # expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
         expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups),
         expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES else [],
-
-rule make_stranded_genome:
-    input:
-        exp = config["genome"]["chrsizes"],
-        si = config["genome"]["sichrsizes"]
-    output:
-        exp = os.path.splitext(config["genome"]["chrsizes"])[0] + "-STRANDED.tsv",
-        si = os.path.splitext(config["genome"]["sichrsizes"])[0] + "-STRANDED.tsv",
-    log: "logs/make_stranded_genome.log"
-    shell: """
-        (awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2}}{{print $1"-minus", $2}}' {input.exp} > {output.exp}) &> {log}
-        (awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2}}{{print $1"-minus", $2}}' {input.si} > {output.si}) &>> {log}
-        """
 
 # rule make_ratio_annotation:
 #     input:
