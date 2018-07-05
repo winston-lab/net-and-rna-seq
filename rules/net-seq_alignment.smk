@@ -7,7 +7,7 @@ localrules:
 #align to combined genome with Tophat2 (single genome only if no samples have spike-ins), without reference transcriptome
 rule bowtie2_build:
     input:
-        fasta = config["combinedgenome"]["fasta"] if SISAMPLES else config["genome"]["fasta"]
+        fasta = config["genome"]["fasta"] if not SISAMPLES else config["combinedgenome"]["fasta"]
     output:
         expand(config["tophat2"]["bowtie2-index-path"] + "/{{basename}}.{num}.bt2", num=[1,2,3,4]),
         expand(config["tophat2"]["bowtie2-index-path"] + "/{{basename}}.rev.{num}.bt2", num=[1,2])
@@ -21,8 +21,8 @@ rule bowtie2_build:
 
 rule align:
     input:
-        expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["combinedgenome"]["name"] if SISAMPLES else config["genome"]["name"]) + ".{num}.bt2", num = [1,2,3,4]),
-        expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["combinedgenome"]["name"] if SISAMPLES else config["genome"]["name"]) + ".rev.{num}.bt2", num=[1,2]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"]) + ".{num}.bt2", num = [1,2,3,4]),
+        expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"]) + ".rev.{num}.bt2", num=[1,2]),
         fastq = "fastq/cleaned/{sample}_net-seq-clean.fastq.gz" if config["random-hexamer"] else "fastq/cleaned/{sample}_net-seq-trimmed.fastq.gz"
     output:
         aligned = "alignment/{sample}/accepted_hits.bam",
@@ -30,7 +30,7 @@ rule align:
         summary = "alignment/{sample}/align_summary.txt",
     params:
         idx_path = config["tophat2"]["bowtie2-index-path"],
-        basename = config["combinedgenome"]["name"] if SISAMPLES else config["genome"]["name"],
+        basename = config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"],
         read_mismatches = config["tophat2"]["read-mismatches"],
         read_gap_length = config["tophat2"]["read-gap-length"],
         read_edit_dist = config["tophat2"]["read-edit-dist"],
@@ -92,7 +92,7 @@ rule bam_separate_species:
     input:
         bam = "alignment/{sample}_net-seq-noPCRduplicates.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam",
         bai = "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam.bai",
-        fasta = config["combinedgenome"]["fasta"]
+        fasta = [] if not SISAMPLES else config["combinedgenome"]["fasta"]
     output:
         "alignment/{sample}_net-seq-noPCRduplicates-{species}.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers-{species}.bam"
     params:

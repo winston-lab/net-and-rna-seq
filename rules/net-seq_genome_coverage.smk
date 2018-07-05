@@ -78,6 +78,6 @@ rule bedgraph_to_bigwig:
         stranded = lambda wc: [] if wc.strand in ["plus", "minus"] else """| awk 'BEGIN{{FS=OFS="\t"}}{{print $1"-plus", $2; print $1"-minus", $2}}' | LC_COLLATE=C sort -k1,1"""
     log : "logs/bedgraph_to_bigwig/bedgraph_to_bigwig-{sample}-{readtype}-{norm}-{strand}.log"
     shell: """
-        (bedGraphToBigWig {input.bedgraph} <(faidx {input.fasta -i chromsizes {params.stranded}) {output}) &> {log}
+        (bedGraphToBigWig {input.bedgraph} <(faidx {input.fasta} -i chromsizes {params.stranded}) {output}) &> {log}
         """
 

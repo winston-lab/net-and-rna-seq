@@ -14,7 +14,9 @@ SIPASSING = {k:v for k,v in PASSING.items() if v["spikein"]}
 controlgroups = [v for k,v in config["comparisons"]["libsizenorm"].items()]
 conditiongroups = [k for k,v in config["comparisons"]["libsizenorm"].items()]
 
-if SIPASSING:
+comparisons_si = config["comparisons"]["spikenorm"]
+
+if comparisons_si:
     controlgroups_si = [v for k,v in config["comparisons"]["spikenorm"].items()]
     conditiongroups_si = [k for k,v in config["comparisons"]["spikenorm"].items()]
 
@@ -22,6 +24,22 @@ COUNTTYPES = ["counts", "sicounts"] if SISAMPLES else ["counts"]
 NORMS = ["libsizenorm", "spikenorm"] if SISAMPLES else ["libsizenorm"]
 
 FIGURES = config["figures"]
+
+wildcard_constraints:
+    sample = "|".join(re.escape(x) for x in list(SAMPLES.keys())),
+    group = "|".join(set(re.escape(v["group"]) for k,v in SAMPLES.items())),
+    control = "|".join(set(re.escape(x) for x in controlgroups + (controlgroups_si if comparisons_si else []) + ["all"])),
+    condition = "|".join(set(re.escape(x) for x in conditiongroups + (conditiongroups_si if comparisons_si else []) + ["all"])),
+    species = "experimental|spikein",
+    read_status = "raw|cleaned|aligned|unaligned",
+    figure = "|".join(re.escape(x) for x in list(FIGURES.keys())),
+    annotation = "|".join(re.escape(x) for x in set(itertools.chain(*[FIGURES[figure]["annotations"].keys() for figure in FIGURES]))),
+    status = "all|passing",
+    counttype= "counts|sicounts",
+    norm = "counts|sicounts|libsizenorm|spikenorm",
+    readtype = "5end|wholeread",
+    windowsize = "\d+",
+    direction = "all|up|unchanged|down",
 
 status_norm_sample_dict = {
     "all":
@@ -80,15 +98,15 @@ rule all:
         #quality control
         "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
         expand("qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg", status=["all", "passing"]) if SISAMPLES else [],
-        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["corr-windowsizes"]),
-        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["corr-windowsizes"]) if SISAMPLES else [],
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"]),
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"]) if SISAMPLES and comparisons_si else [],
         #datavis
-        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if config["plot_figures"] and SISAMPLES else [],
+        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if config["plot_figures"] else [],
         #expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
         # expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
         expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups),
-        expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES else [],
+        expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
 
 # rule make_ratio_annotation:
 #     input:
