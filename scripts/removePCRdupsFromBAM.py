@@ -12,7 +12,7 @@ use : python removePCRdupsFromBAM.py    iBAM (input BAM file with only unique al
                                         oBAM (output BAM file containing only non duplicated reads) [2]
 
 """
-import sys, pysam, os, numpy, re
+import sys, pysam
 
 iBAM = pysam.Samfile(sys.argv[1], 'rb')
 oBAM = pysam.Samfile(sys.argv[2], 'wb', template=iBAM)
