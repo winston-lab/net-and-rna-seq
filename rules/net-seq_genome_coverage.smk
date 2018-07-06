@@ -2,15 +2,15 @@
 
 rule genome_coverage:
     input:
-        {True:
-            {   True : "alignment/{sample}_net-seq-noPCRduplicates-{species}.bam",
-                False: "alignment/{sample}_net-seq-noPCRduplicates.bam"
-            },
-        False:
-            {   True: "alignment/{sample}_net-seq-uniquemappers-{species}.bam",
-                False: "alignment/{sample}_net-seq-uniquemappers.bam"
-            }
-        }.get(config["random-hexamer"]).get(len(SISAMPLES)>0)
+        lambda wc:  {True:
+                        {   True : f"alignment/{wc.sample}_net-seq-noPCRduplicates-" + ("experimental" if wc.counttype=="counts" else "spikein") + ".bam",
+                            False: f"alignment/{wc.sample}_net-seq-noPCRduplicates.bam"
+                        },
+                    False:
+                        {   True: f"alignment/{wc.sample}_net-seq-uniquemappers-" + ("experimental" if wc.counttype=="counts" else "spikein") + ".bam",
+                            False: f"alignment/{wc.sample}_net-seq-uniquemappers.bam"
+                        }
+                    }.get(config["random-hexamer"]).get(len(SISAMPLES)>0)
     output:
         "coverage/{counttype}/{sample}_netseq-{readtype}-{counttype}-{strand}.bedgraph",
     params:

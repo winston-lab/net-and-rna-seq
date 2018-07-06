@@ -6,7 +6,7 @@ localrules:
 
 rule map_counts_to_transcripts:
     input:
-        bed = lambda wc: config["genome"]["transcripts"] if wc.species=="experimental" else config["genome"]["spikein-transcripts"],
+        bed = lambda wc: config["genome"]["transcripts"] if wc.species=="experimental" else config["genome"]["spikein_transcripts"],
         bg = lambda wc: f"coverage/counts/{wc.sample}_netseq-5end-counts-SENSE.bedgraph" if wc.species=="experimental" else f"coverage/sicounts/{wc.sample}_netseq-5end-sicounts-SENSE.bedgraph"
     output:
         temp("diff_exp/{condition}-v-{control}/{sample}_{species}-transcript-counts.tsv")

@@ -94,7 +94,7 @@ rule all:
         expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES),
         #coverage
         expand("coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
-        expand("coverage/{norm}/{sample}-netseq-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
+        expand("coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
         #quality control
         "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
         expand("qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg", status=["all", "passing"]) if SISAMPLES else [],

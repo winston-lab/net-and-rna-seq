@@ -34,8 +34,8 @@ rule plot_read_processing:
 rule build_spikein_counts_table:
     input:
         total_bam = expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SISAMPLES),
-        exp_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-experimental.bam", samples=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-experimental.bam", samples=SISAMPLES),
-        si_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-spikein.bam", samples=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-spikein.bam", samples=SISAMPLES),
+        exp_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-experimental.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-experimental.bam", sample=SISAMPLES),
+        si_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-spikein.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-spikein.bam", sample=SISAMPLES),
     output:
         "qual_ctrl/spikein/net-seq_spikein-counts.tsv"
     params:
