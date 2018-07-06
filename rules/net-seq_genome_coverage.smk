@@ -57,15 +57,15 @@ rule normalize_genome_coverage:
 
 rule make_stranded_bedgraph:
     input:
-        plus = "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-plus.bedgraph",
-        minus = "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-minus.bedgraph",
+        plus = lambda wc: "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-".format(**wc) + ("plus" if wc.strand=="SENSE" else "minus") +".bedgraph",
+        minus = lambda wc: "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-".format(**wc) + ("minus" if wc.strand=="SENSE" else "plus") +".bedgraph",
     output:
-        sense = "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-SENSE.bedgraph",
-        antisense = "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-ANTISENSE.bedgraph",
-    log : "logs/make_stranded_bedgraph/make_stranded_bedgraph-{sample}-{readtype}-{norm}.log"
+        "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bedgraph",
+    wildcard_constraints:
+        strand="SENSE|ANTISENSE"
+    log : "logs/make_stranded_bedgraph/make_stranded_bedgraph-{sample}-{readtype}-{norm}-{strand}.log"
     shell: """
-        (bash scripts/makeStrandedBedgraph.sh {input.plus} {input.minus} > {output.sense}) &> {log}
-        (bash scripts/makeStrandedBedgraph.sh {input.minus} {input.plus} > {output.antisense}) &>> {log}
+        (bash scripts/makeStrandedBedgraph.sh {input.plus} {input.minus} > {output}) &> {log}
         """
 
 rule bedgraph_to_bigwig:
