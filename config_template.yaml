@@ -1,35 +1,36 @@
+---
 # NET-seq configuration file
 #
 # relative paths are okay
 #
 
-random-hexamer: False # [True|False] Does the adapter have the random hexamer molecular barcode?
+random-hexamer: False  # [True|False] Does the adapter have the random hexamer molecular barcode?
 
 # for the combined experimental and spikein genomes
 # can be commented out if no samples have spikein
-combinedgenome :
-    name : ScSp # [STRING] used only to name the bowtie2 indices
-    fasta : ../../genome/ScSp.R64.2-1.ASM294v2.fa # path to combined fasta file
-    experimental_prefix : Scer_ # prefix for experimental species
-    spikein_prefix : Spom_ # prefix for spikein species
+combinedgenome:
+    name: ScSp  # [STRING] used only to name the bowtie2 indices
+    fasta: ../../genome/ScSp.R64.2-1.ASM294v2.fa  # path to combined fasta file
+    experimental_prefix: Scer_  # prefix for experimental species
+    spikein_prefix: Spom_  # prefix for spikein species
 
 # for individual genomes
 genome:
-    name : Sc # [STRING] used only to name the bowtie2 indices
-    fasta : ../../genome/S_cerevisiae.R64-2-1.fa # path to experimental fasta file
-    # spikein_fasta: ../../../spt5/genome/S_pombe.ASM294v2.fa # path to spikein fasta file, if any samples have spikein
-    transcripts: ../../genome/annotations/Scer_polIItranscripts-adjustedTSS.bed # path to BED6+ file of transcript annotations
-    # spikein_transcripts: ../../genome/annotations/S_pombe_alltranscripts-adjustedTSS.bed # path to BED6+ file of spikein transcript annotations, if any samples have spikein
+    name: Sc  # [STRING] used only to name the bowtie2 indices
+    fasta: ../../genome/S_cerevisiae.R64-2-1.fa  # path to experimental fasta file
+    # spikein_fasta: ../../../spt5/genome/S_pombe.ASM294v2.fa  # path to spikein fasta file, if any samples have spikein
+    transcripts: ../../genome/annotations/Scer_polIItranscripts-adjustedTSS.bed  # path to BED6+ file of transcript annotations
+    # spikein_transcripts: ../../genome/annotations/S_pombe_alltranscripts-adjustedTSS.bed  # path to BED6+ file of spikein transcript annotations, if any samples have spikein
 
-spikein-pct : 0 # [FLOAT] percent spike-in added, if any samples have spikein. This is only used to scale spike-in normalized coverage so it is on the same scale as library size normalized coverage files
+spikein-pct: 0  # [FLOAT] percent spike-in added, if any samples have spikein. This is only used to scale spike-in normalized coverage so it is on the same scale as library size normalized coverage files
 
 # sample metadata
 samples:
-    WT-30C-1: # [STRING] sample name. Do not use underscores ("_").
-        fastq: fastq/FC_00443fq/LIB003959_TRA00005424_TTAGGC_L001_R1.fastq.gz # path to raw fastq file
-        group: WT-30C # [STRING] sample group tag. Do not use underscores ("_").
-        pass-qc: True # [True|False] Should this sample be used for peakcalling, and included in "passing" heatmaps, metagenes, scatter plots, etc? Leave True for initial pipeline run, and rerun pipeline with False if a sample fails quality controls.
-        spikein: False # [True|False] Does the sample have a spikein?
+    WT-30C-1:  # [STRING] sample name. Do not use underscores ("_").
+        fastq: fastq/FC_00443fq/LIB003959_TRA00005424_TTAGGC_L001_R1.fastq.gz  # path to raw fastq file
+        group: WT-30C  # [STRING] sample group tag. Do not use underscores ("_").
+        pass-qc: True  # [True|False] Should this sample be used for peakcalling, and included in "passing" heatmaps, metagenes, scatter plots, etc? Leave True for initial pipeline run, and rerun pipeline with False if a sample fails quality controls.
+        spikein: False  # [True|False] Does the sample have a spikein?
     WT-30C-2:
         fastq: fastq/FC_00496fq/LIB004611_TRA00007214_TTAGGC_L008_R1.fastq.gz
         group: WT-30C
@@ -179,7 +180,7 @@ samples:
 # comparisons to be made in differential expression, data visualization, scatterplots, etc, etc.
 comparisons:
     libsizenorm:
-        spt6-1004-37C: WT-37C # CONDITION: CONTROL . Tags must match 'group' tags in sample metadata
+        spt6-1004-37C: WT-37C  # CONDITION: CONTROL . Tags must match 'group' tags in sample metadata
         spt6-1004-30C: WT-30C
         spt6-1004-37C: spt6-1004-30C
         # spt6-YW-37C: WT-37C
@@ -199,90 +200,89 @@ scatterplot_binsizes:
 
 # cutadapt settings
 cutadapt:
-    trim_qual : 25 # [INT] quality cutoff for cutadapt 3' trimming
-    adapter: ATCTCGTATGCCGTCTTCTGCTTG # 3' adapter sequence, from 5' to 3'
+    trim_qual: 25  # [INT] quality cutoff for cutadapt 3' trimming
+    adapter: ATCTCGTATGCCGTCTTCTGCTTG  # 3' adapter sequence, from 5' to 3'
 
 # tophat2 alignment settings
 tophat2:
-    bowtie2-index-path: ../../genome/bowtie2_indexes # directory to create index files, if they don't already exist in that directory
-    read-mismatches : 3 #[INT]
-    read-gap-length : 2 #[INT]
-    read-edit-dist : 3 #[INT]
-    min-anchor-length : 8 #[INT]
-    splice-mismatches : 1 #[INT]
-    min-intron-length : 20 #[INT]
-    max-intron-length : 5000 #[INT]
-    max-insertion-length : 3 #[INT]
-    max-deletion-length : 3 #[INT]
-    max-multihits : 100 #[INT]
-    segment-mismatches : 3 #[INT]
-    segment-length : 20 #[INT]
-    min-coverage-intron : 50 #[INT]
-    max-coverage-intron : 10000 #[INT]
-    min-segment-intron : 50 #[INT]
-    max-segment-intron : 500000 #[INT]
+    bowtie2-index-path: ../../genome/bowtie2_indexes  # directory to create index files, if they don't already exist in that directory
+    read-mismatches: 3  # [INT]
+    read-gap-length: 2  # [INT]
+    read-edit-dist: 3  # [INT]
+    min-anchor-length: 8  # [INT]
+    splice-mismatches: 1  # [INT]
+    min-intron-length: 20  # [INT]
+    max-intron-length: 5000  # [INT]
+    max-insertion-length: 3  # [INT]
+    max-deletion-length: 3  # [INT]
+    max-multihits: 100  # [INT]
+    segment-mismatches: 3  # [INT]
+    segment-length: 20  # [INT]
+    min-coverage-intron: 50  # [INT]
+    max-coverage-intron: 10000  # [INT]
+    min-segment-intron: 50  # [INT]
+    max-segment-intron: 500000  # [INT]
 
 # DESeq2 differential expression settings
 deseq:
-    fdr : 0.1 # [FLOAT in (0,1)] false discovery rate threshold
-    fold-change-threshold: 1.5 # [FLOAT] fold-change for hypothesis. Absolute fold-change, NOT log2(FC).
+    fdr: 0.1  # [FLOAT in (0,1)] false discovery rate threshold
+    fold-change-threshold: 1.5  # [FLOAT] fold-change for hypothesis. Absolute fold-change, NOT log2(FC).
 
 # data visualization settings
-plot_figures: True # [True|False] plot heatmaps and metagenes?
+plot_figures: True  # [True|False] plot heatmaps and metagenes?
 figures:
-    verified-transcripts-nonoverlapping-TSS: # [STRING] name of figure. Do not include underscores ("_")
+    verified-transcripts-nonoverlapping-TSS:  # [STRING] name of figure. Do not include underscores ("_")
         annotations:
-            verified-transcripts: # [STRING] name of region. Do not include underscores ("_"). More than one region can be plotted.
-                path : ../../genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping.bed # path to BED6 file of regions
-                label: nonoverlapping coding genes # [STRING] label for region
-                n_clusters: 1 # [INT] number of clusters to separate region into. Leave 1 for no clustering. Basic k-means clustering is used.
+            verified-transcripts:  # [STRING] name of region. Do not include underscores ("_"). More than one region can be plotted.
+                path: ../../genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping.bed  # path to BED6 file of regions
+                label: nonoverlapping coding genes  # [STRING] label for region
+                n_clusters: 1  # [INT] number of clusters to separate region into. Leave 1 for no clustering. Basic k-means clustering is used.
         parameters:
-            type: absolute # [absolute|scaled] Plot absolute distances, or scale all annotations to the same length. See below for example parameters for a scaled plot.
-            binsize : 20 # [INT] binsize to summarise data
-            binstat : mean # [mean|median|min|max|sum|std] operation used to summarise data
-            refpoint : TSS # [TSS|TES|center] reference point in region. TSS and TES correspond to the 5' and 3' ends, respectively.
-            refpointlabel : TSS # [STRING] label for reference point
-            upstream : 500 # [INT] nucleotides upstream of reference point to plot. Must be a multiple of the binsize.
-            dnstream : 3000 # [INT] maximum nucleotides downstream of reference point to plot. Must be a multiple of the binsize.
-            nan_afterend : True  # [True|False] Should data after the end of the annotation be left out? Useful for length-sorted heatmaps.
-            pct_cutoff : .95 # winsorize data above this percentile in heatmaps
-            log_transform: False # [True|False] Log transform data?
-            spread_type: quantile # [conf_int|quantile] Plot 95% confidence interval of the mean, or quantiles of the data.
-            trim_pct: 0.1 # [FLOAT in (0,1)] For confidence intervals, this is the percent to winsorize before taking the mean. For quantiles, this is the lower quantile.
-            arrange: length # [no|length|cluster] No: keep annotations in order of annotation file. Length: sort annotations in order of length before plotting. Cluster: try to plot annotations with similar data close to one another, using optimal leaf ordering of hierarchical clustering
+            type: absolute  # [absolute|scaled] Plot absolute distances, or scale all annotations to the same length. See below for example parameters for a scaled plot.
+            binsize: 20  # [INT] binsize to summarise data
+            binstat: mean  # [mean|median|min|max|sum|std] operation used to summarise data
+            refpoint: TSS  # [TSS|TES|center] reference point in region. TSS and TES correspond to the 5' and 3' ends, respectively.
+            refpointlabel: TSS  # [STRING] label for reference point
+            upstream: 500  # [INT] nucleotides upstream of reference point to plot. Must be a multiple of the binsize.
+            dnstream: 3000  # [INT] maximum nucleotides downstream of reference point to plot. Must be a multiple of the binsize.
+            nan_afterend: True   # [True|False] Should data after the end of the annotation be left out? Useful for length-sorted heatmaps.
+            pct_cutoff: .95  # winsorize data above this percentile in heatmaps
+            log_transform: False  # [True|False] Log transform data?
+            spread_type: quantile  # [conf_int|quantile] Plot 95% confidence interval of the mean, or quantiles of the data.
+            trim_pct: 0.1  # [FLOAT in (0,1)] For confidence intervals, this is the percent to winsorize before taking the mean. For quantiles, this is the lower quantile.
+            arrange: length  # [no|length|cluster] No: keep annotations in order of annotation file. Length: sort annotations in order of length before plotting. Cluster: try to plot annotations with similar data close to one another, using optimal leaf ordering of hierarchical clustering
             # cluster_conditions:
-            #   WT-37C: sense # CONDITION: STRAND. If arrange: cluster, the condition and strand to be used for arranging. Strand can be "sense", "antisense", or "both".
+            #   WT-37C: sense  # CONDITION: STRAND. If arrange: cluster, the condition and strand to be used for arranging. Strand can be "sense", "antisense", or "both".
             #   spt6-1004-37C: both
-            # cluster_five: -500 # [INT] 5' boundary of the data to be used for clustering, relative to the reference point.
-            # cluster_three: 500 # [INT] 3' boundary of the data to be used for clustering, relative to the reference point
-            heatmap_colormap : viridis # [viridis|inferno|magma|plasma] colormap for heatmaps
+            # cluster_five: -500  # [INT] 5' boundary of the data to be used for clustering, relative to the reference point.
+            # cluster_three: 500  # [INT] 3' boundary of the data to be used for clustering, relative to the reference point
+            heatmap_colormap: viridis  # [viridis|inferno|magma|plasma] colormap for heatmaps
     verified-transcripts-nonoverlapping-scaled:
         annotations:
             verified-transcripts:
-                path : ../../genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping.bed
+                path: ../../genome/annotations/Scer_transcripts_w_verifiedORFs-nonoverlapping.bed
                 label: nonoverlapping coding genes
                 n_clusters: 1
         parameters:
-            type: scaled # [absolute|scaled] Plot absolute distances, or scale all annotations to the same length. See above for example parameters for an absolute distance plot.
-            binsize : 20 # [INT] binsize to summarise data
-            binstat : mean # [mean|median|min|max|sum|std] operation used to summarise data
-            scaled_length: 2000 # [INT] length, in nt, to scale all annotations to
-            refpointlabel : TSS # [STRING] label for 5' end of scaled annotations
-            three_prime_label: CPS # [STRING] label for 3' end of scaled annotations
-            upstream : 500 # [INT] nucleotides upstream of 5' end of annotations to plot. Must be a multiple of the binsize.
-            dnstream : 500 # [INT] nucleotides downstream of 3' end of annotations to plot. Must be a multiple of the binsize.
-            pct_cutoff : .94 # [FLOAT in (0,1)] Percentile of the data to set as the maximum of the colorbar in heatmaps
-            log_transform: False # [True|False] Log transform data?
-            spread_type: quantile # [conf_int|quantile] Plot 95% confidence interval of the mean, or quantiles of the data.
-            trim_pct: 0.25 # [FLOAT in (0,1)] For confidence intervals, this is the percent to winsorize before taking the mean. For quantiles, this is the lower quantile.
-            arrange: length # [no|length|cluster] No: keep annotations in order of annotation file. Length: sort annotations in order of length before plotting. Cluster: try to plot annotations with similar data close to one another, using optimal leaf ordering of hierarchical clustering
+            type: scaled  # [absolute|scaled] Plot absolute distances, or scale all annotations to the same length. See above for example parameters for an absolute distance plot.
+            binsize: 20  # [INT] binsize to summarise data
+            binstat: mean  # [mean|median|min|max|sum|std] operation used to summarise data
+            scaled_length: 2000  # [INT] length, in nt, to scale all annotations to
+            refpointlabel: TSS  # [STRING] label for 5' end of scaled annotations
+            three_prime_label: CPS  # [STRING] label for 3' end of scaled annotations
+            upstream: 500  # [INT] nucleotides upstream of 5' end of annotations to plot. Must be a multiple of the binsize.
+            dnstream: 500  # [INT] nucleotides downstream of 3' end of annotations to plot. Must be a multiple of the binsize.
+            pct_cutoff: .94  # [FLOAT in (0,1)] Percentile of the data to set as the maximum of the colorbar in heatmaps
+            log_transform: False  # [True|False] Log transform data?
+            spread_type: quantile  # [conf_int|quantile] Plot 95% confidence interval of the mean, or quantiles of the data.
+            trim_pct: 0.25  # [FLOAT in (0,1)] For confidence intervals, this is the percent to winsorize before taking the mean. For quantiles, this is the lower quantile.
+            arrange: length  # [no|length|cluster] No: keep annotations in order of annotation file. Length: sort annotations in order of length before plotting. Cluster: try to plot annotations with similar data close to one another, using optimal leaf ordering of hierarchical clustering
             # cluster_conditions:
-            #   WT-37C: sense # CONDITION: STRAND. If arrange: cluster, the condition and strand to be used for arranging. Strand can be "sense", "antisense", or "both".
+            #   WT-37C: sense  # CONDITION: STRAND. If arrange: cluster, the condition and strand to be used for arranging. Strand can be "sense", "antisense", or "both".
             #   spt6-1004-37C: both
-            # cluster_five: -500 # [INT] 5' boundary of the data to be used for clustering, relative to the 5' end of the annotation.
-            # cluster_three: 500 # [INT] 3' boundary of the data to be used for clustering, relative to the 3' end of the annotation.
-            heatmap_colormap : viridis  # OPTIONS: viridis, inferno, magma, plasma
+            # cluster_five: -500  # [INT] 5' boundary of the data to be used for clustering, relative to the 5' end of the annotation.
+            # cluster_three: 500  # [INT] 3' boundary of the data to be used for clustering, relative to the 3' end of the annotation.
+            heatmap_colormap: viridis  # OPTIONS: viridis, inferno, magma, plasma
 
 # maximum number of threads to use if running locally
-threads: 4 #[INT]
-
+threads: 4  # [INT]
