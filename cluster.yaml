@@ -31,7 +31,7 @@ remove_PCR_duplicates:
     mem : 2000
 
 fastqc_prealignment:
-    time : 10
+    time : 20
     n : 2
     mem : 4000
 
