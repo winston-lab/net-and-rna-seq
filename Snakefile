@@ -6,6 +6,8 @@ import itertools
 
 configfile: "config.yaml"
 
+ASSAY = config["assay"]
+
 SAMPLES = config["samples"]
 SISAMPLES = {k:v for k,v in SAMPLES.items() if v["spikein"]}
 PASSING = {k:v for k,v in SAMPLES.items() if v["pass-qc"]}
@@ -40,6 +42,7 @@ wildcard_constraints:
     readtype = "5end|wholeread",
     windowsize = "\d+",
     direction = "all|up|unchanged|down",
+    assay = ASSAY
 
 status_norm_sample_dict = {
     "all":
@@ -89,24 +92,24 @@ onsuccess:
 rule all:
     input:
         #FastQC
-        'qual_ctrl/fastqc/net-seq-per_base_sequence_content.svg',
+        f'qual_ctrl/fastqc/{ASSAY}-per_base_sequence_content.svg',
         #alignment
-        expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES),
+        expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SAMPLES),
         #coverage
-        expand("coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
-        expand("coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"]),
+        expand("coverage/{norm}/{sample}_{assay}-{readtype}-{norm}-{strand}.bw", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], assay=ASSAY),
+        expand("coverage/{norm}/{sample}_{assay}-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], assay=ASSAY),
         #quality control
-        "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
-        expand("qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg", status=["all", "passing"]) if SISAMPLES else [],
-        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"]),
-        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_net-seq-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"]) if SISAMPLES and comparisons_si else [],
+        f"qual_ctrl/read_processing/{ASSAY}_read-processing-loss.svg",
+        expand(f"qual_ctrl/spikein/{ASSAY}_spikein-plots-{{status}}.svg", status=["all", "passing"]) if SISAMPLES else [],
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"], assay=ASSAY),
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"], assay=ASSAY), status=["all", "passing"], windowsize=config["scatterplot_binsizes"]) if SISAMPLES and comparisons_si else [],
         #datavis
-        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
-        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/netseq-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"]) if config["plot_figures"] else [],
+        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
+        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
         #expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
         # expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
-        expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups),
-        expand("diff_exp/{condition}-v-{control}/{condition}-v-{control}-netseq-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
+        expand(f"diff_exp/{{condition}}-v-{{control}}/{{condition}}-v-{{control}}-{ASSAY}-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups),
+        expand(f"diff_exp/{{condition}}-v-{{control}}/{{condition}}-v-{{control}}-{ASSAY}-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
 
 # rule make_ratio_annotation:
 #     input:

@@ -6,13 +6,13 @@ localrules:
 rule fastqc_prealignment:
     input:
         lambda wc: {"raw": SAMPLES[wc.sample]["fastq"],
-                    "trimmed": f"fastq/cleaned/{wc.sample}_net-seq-trimmed.fastq.gz",
-                    "clean": f"fastq/cleaned/{wc.sample}_net-seq-clean.fastq.gz"
+                    "trimmed": f"fastq/cleaned/{wc.sample}_{ASSAY}-trimmed.fastq.gz",
+                    "clean": f"fastq/cleaned/{wc.sample}_{ASSAY}-clean.fastq.gz"
                    }.get(wc.read_status)
     output:
         "qual_ctrl/fastqc/{read_status}/{sample}_fastqc-data-{read_status}.txt"
     params:
-        fname = lambda wc: re.split('.fq|.fastq', os.path.split(SAMPLES[wc.sample]["fastq"])[1])[0] if wc.read_status=="raw" else "{sample}_net-seq-{read_status}".format(**wc),
+        fname = lambda wc: re.split('.fq|.fastq', os.path.split(SAMPLES[wc.sample]["fastq"])[1])[0] if wc.read_status=="raw" else f"{wc.sample}_{ASSAY}-{wc.read_status}".format(**wc),
         adapter = config["cutadapt"]["adapter"]
     wildcard_constraints:
         read_status="raw|trimmed|clean"
@@ -26,8 +26,8 @@ rule fastqc_prealignment:
 
 rule fastqc_postalignment:
     input:
-        lambda wc: {"aligned_noPCRdup": f"alignment/{wc.sample}_net-seq-noPCRduplicates.bam",
-                    "unique_mappers": f"alignment/{wc.sample}_net-seq-uniquemappers.bam",
+        lambda wc: {"aligned_noPCRdup": f"alignment/{wc.sample}_{ASSAY}-noPCRduplicates.bam",
+                    "unique_mappers": f"alignment/{wc.sample}_{ASSAY}-uniquemappers.bam",
                     "unaligned": f"alignment/{wc.sample}/unmapped.bam"
                     }.get(wc.read_status)
     output:
@@ -93,15 +93,15 @@ rule fastqc_aggregate:
         aligned = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}_fastqc-data-aligned_noPCRdup.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/unique_mappers/{sample}_fastqc-data-unique_mappers.txt", sample=SAMPLES),
         unaligned = expand("qual_ctrl/fastqc/unaligned/{sample}_fastqc-data-unaligned.txt", sample=SAMPLES),
     output:
-        per_base_qual = 'qual_ctrl/fastqc/net-seq-per_base_quality.tsv',
-        per_tile_qual = 'qual_ctrl/fastqc/net-seq-per_tile_quality.tsv',
-        per_seq_qual =  'qual_ctrl/fastqc/net-seq-per_sequence_quality.tsv',
-        per_base_seq_content = 'qual_ctrl/fastqc/net-seq-per_base_sequence_content.tsv',
-        per_seq_gc = 'qual_ctrl/fastqc/net-seq-per_sequence_gc.tsv',
-        per_base_n = 'qual_ctrl/fastqc/net-seq-per_base_n.tsv',
-        seq_length_dist = 'qual_ctrl/fastqc/net-seq-sequence_length_distribution.tsv',
-        seq_duplication = 'qual_ctrl/fastqc/net-seq-sequence_duplication_levels.tsv',
-        adapter_content = 'qual_ctrl/fastqc/net-seq-adapter_content.tsv',
+        per_base_qual = f'qual_ctrl/fastqc/{ASSAY}-per_base_quality.tsv',
+        per_tile_qual = f'qual_ctrl/fastqc/{ASSAY}-per_tile_quality.tsv',
+        per_seq_qual =  f'qual_ctrl/fastqc/{ASSAY}-per_sequence_quality.tsv',
+        per_base_seq_content = f'qual_ctrl/fastqc/{ASSAY}-per_base_sequence_content.tsv',
+        per_seq_gc = f'qual_ctrl/fastqc/{ASSAY}-per_sequence_gc.tsv',
+        per_base_n = f'qual_ctrl/fastqc/{ASSAY}-per_base_n.tsv',
+        seq_length_dist = f'qual_ctrl/fastqc/{ASSAY}-sequence_length_distribution.tsv',
+        seq_duplication = f'qual_ctrl/fastqc/{ASSAY}-sequence_duplication_levels.tsv',
+        adapter_content = f'qual_ctrl/fastqc/{ASSAY}-adapter_content.tsv',
     run:
         tags = ["raw", "clean", "aligned_noPCRdup", "unaligned"] if config["random-hexamer"] else ["raw", "clean", "unique_mappers", "unaligned"]
         shell("""rm -f {output}""")
@@ -116,24 +116,24 @@ rule fastqc_aggregate:
 
 rule plot_fastqc_summary:
     input:
-        seq_len_dist = 'qual_ctrl/fastqc/net-seq-sequence_length_distribution.tsv',
-        per_tile = 'qual_ctrl/fastqc/net-seq-per_tile_quality.tsv',
-        per_base_qual = 'qual_ctrl/fastqc/net-seq-per_base_quality.tsv',
-        per_base_seq = 'qual_ctrl/fastqc/net-seq-per_base_sequence_content.tsv',
-        per_base_n = 'qual_ctrl/fastqc/net-seq-per_base_n.tsv',
-        per_seq_gc = 'qual_ctrl/fastqc/net-seq-per_sequence_gc.tsv',
-        per_seq_qual = 'qual_ctrl/fastqc/net-seq-per_sequence_quality.tsv',
-        adapter_content = 'qual_ctrl/fastqc/net-seq-adapter_content.tsv',
-        seq_dup = 'qual_ctrl/fastqc/net-seq-sequence_duplication_levels.tsv',
+        seq_len_dist = f'qual_ctrl/fastqc/{ASSAY}-sequence_length_distribution.tsv',
+        per_tile = f'qual_ctrl/fastqc/{ASSAY}-per_tile_quality.tsv',
+        per_base_qual = f'qual_ctrl/fastqc/{ASSAY}-per_base_quality.tsv',
+        per_base_seq = f'qual_ctrl/fastqc/{ASSAY}-per_base_sequence_content.tsv',
+        per_base_n = f'qual_ctrl/fastqc/{ASSAY}-per_base_n.tsv',
+        per_seq_gc = f'qual_ctrl/fastqc/{ASSAY}-per_sequence_gc.tsv',
+        per_seq_qual = f'qual_ctrl/fastqc/{ASSAY}-per_sequence_quality.tsv',
+        adapter_content = f'qual_ctrl/fastqc/{ASSAY}-adapter_content.tsv',
+        seq_dup = f'qual_ctrl/fastqc/{ASSAY}-sequence_duplication_levels.tsv',
     output:
-        seq_len_dist = 'qual_ctrl/fastqc/net-seq-sequence_length_distribution.svg',
-        per_tile = 'qual_ctrl/fastqc/net-seq-per_tile_quality.svg',
-        per_base_qual = 'qual_ctrl/fastqc/net-seq-per_base_quality.svg',
-        per_base_seq = 'qual_ctrl/fastqc/net-seq-per_base_sequence_content.svg',
-        per_seq_gc = 'qual_ctrl/fastqc/net-seq-per_sequence_gc.svg',
-        per_seq_qual = 'qual_ctrl/fastqc/net-seq-per_sequence_quality.svg',
-        adapter_content = 'qual_ctrl/fastqc/net-seq-adapter_content.svg',
-        seq_dup = 'qual_ctrl/fastqc/net-seq-sequence_duplication_levels.svg',
+        seq_len_dist = f'qual_ctrl/fastqc/{ASSAY}-sequence_length_distribution.svg',
+        per_tile = f'qual_ctrl/fastqc/{ASSAY}-per_tile_quality.svg',
+        per_base_qual = f'qual_ctrl/fastqc/{ASSAY}-per_base_quality.svg',
+        per_base_seq = f'qual_ctrl/fastqc/{ASSAY}-per_base_sequence_content.svg',
+        per_seq_gc = f'qual_ctrl/fastqc/{ASSAY}-per_sequence_gc.svg',
+        per_seq_qual = f'qual_ctrl/fastqc/{ASSAY}-per_sequence_quality.svg',
+        adapter_content = f'qual_ctrl/fastqc/{ASSAY}-adapter_content.svg',
+        seq_dup = f'qual_ctrl/fastqc/{ASSAY}-sequence_duplication_levels.svg',
     conda: "../envs/tidyverse.yaml"
     script: "../scripts/fastqc_summary.R"
 

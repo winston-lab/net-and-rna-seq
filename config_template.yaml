@@ -1,9 +1,10 @@
 ---
-# NET-seq configuration file
+# NET-seq and RNA-seq configuration file
 #
 # relative paths are okay
 #
 
+assay: netseq # [netseq|rnaseq]
 random-hexamer: False  # [True|False] Does the adapter have the random hexamer molecular barcode?
 
 # for the combined experimental and spikein genomes

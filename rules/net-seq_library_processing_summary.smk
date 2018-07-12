@@ -9,9 +9,9 @@ rule aggregate_read_numbers:
     input:
         adapter = expand("logs/clean_reads/clean_reads-{sample}.log", sample=SAMPLES),
         align = expand("alignment/{sample}/align_summary.txt", sample=SAMPLES),
-        nodups = expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SAMPLES)
+        nodups = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SAMPLES)
     output:
-        "qual_ctrl/read_processing/net-seq_read-processing-summary.tsv"
+        f"qual_ctrl/read_processing/{ASSAY}_read-processing-summary.tsv"
     log: "logs/aggregate_read_numbers.log"
     run:
         shell("""(echo -e "sample\traw\tcleaned\tmapped\tunique_map\tnoPCRdup" > {output}) &> {log}""")
@@ -23,21 +23,21 @@ rule aggregate_read_numbers:
 
 rule plot_read_processing:
     input:
-        "qual_ctrl/read_processing/net-seq_read-processing-summary.tsv"
+        f"qual_ctrl/read_processing/{ASSAY}_read-processing-summary.tsv"
     output:
-        surv_abs_out = "qual_ctrl/read_processing/net-seq_read-processing-survival-absolute.svg",
-        surv_rel_out = "qual_ctrl/read_processing/net-seq_read-processing-survival-relative.svg",
-        loss_out  = "qual_ctrl/read_processing/net-seq_read-processing-loss.svg",
+        surv_abs_out = f"qual_ctrl/read_processing/{ASSAY}_read-processing-survival-absolute.svg",
+        surv_rel_out = f"qual_ctrl/read_processing/{ASSAY}_read-processing-survival-relative.svg",
+        loss_out  = f"qual_ctrl/read_processing/{ASSAY}_read-processing-loss.svg",
     conda: "../envs/tidyverse.yaml"
     script: "../scripts/processing_summary.R"
 
 rule build_spikein_counts_table:
     input:
-        total_bam = expand("alignment/{sample}_net-seq-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers.bam", sample=SISAMPLES),
-        exp_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-experimental.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-experimental.bam", sample=SISAMPLES),
-        si_bam = expand("alignment/{sample}_net-seq-noPCRduplicates-spikein.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{sample}_net-seq-uniquemappers-spikein.bam", sample=SISAMPLES),
+        total_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SISAMPLES),
+        exp_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-experimental.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-experimental.bam", sample=SISAMPLES),
+        si_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-spikein.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-spikein.bam", sample=SISAMPLES),
     output:
-        "qual_ctrl/spikein/net-seq_spikein-counts.tsv"
+        f"qual_ctrl/spikein/{ASSAY}_spikein-counts.tsv"
     params:
         groups = [v["group"] for k,v in SISAMPLES.items()]
     log: "logs/build_spikein_counts_table.log"
@@ -48,10 +48,10 @@ rule build_spikein_counts_table:
 
 rule plot_spikein_pct:
     input:
-        "qual_ctrl/spikein/net-seq_spikein-counts.tsv"
+        f"qual_ctrl/spikein/{ASSAY}_spikein-counts.tsv"
     output:
-        plot = "qual_ctrl/spikein/net-seq_spikein-plots-{status}.svg",
-        stats = "qual_ctrl/spikein/net-seq_spikein-stats-{status}.tsv"
+        plot = f"qual_ctrl/spikein/{ASSAY}_spikein-plots-{{status}}.svg",
+        stats = f"qual_ctrl/spikein/{ASSAY}_spikein-stats-{{status}}.tsv"
     params:
         samplelist = lambda wc : list(SISAMPLES.keys()) if wc.status=="all" else list(SIPASSING.keys()),
         conditions = conditiongroups_si if comparisons_si else [],

@@ -23,7 +23,7 @@ rule align:
     input:
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"]) + ".{num}.bt2", num = [1,2,3,4]),
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"]) + ".rev.{num}.bt2", num=[1,2]),
-        fastq = "fastq/cleaned/{sample}_net-seq-clean.fastq.gz" if config["random-hexamer"] else "fastq/cleaned/{sample}_net-seq-trimmed.fastq.gz"
+        fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-clean.fastq.gz" if config["random-hexamer"] else f"fastq/cleaned/{{sample}}_{ASSAY}-trimmed.fastq.gz"
     output:
         aligned = "alignment/{sample}/accepted_hits.bam",
         unaligned = "alignment/{sample}/unmapped.bam",
@@ -59,7 +59,7 @@ rule select_unique_mappers:
     input:
         "alignment/{sample}/accepted_hits.bam"
     output:
-        "alignment/{sample}_net-seq-uniquemappers.bam"
+        f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam"
     threads: config["threads"]
     log: "logs/select_unique_mappers/select_unique_mappers-{sample}.log"
     shell: """
@@ -68,9 +68,9 @@ rule select_unique_mappers:
 
 rule remove_PCR_duplicates:
     input:
-        "alignment/{sample}_net-seq-uniquemappers.bam"
+        f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam"
     output:
-        "alignment/{sample}_net-seq-noPCRduplicates.bam"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam"
     log: "logs/remove_PCR_duplicates/remove_PCR_duplicates-{sample}.log"
     shell: """
         (python scripts/removePCRdupsFromBAM.py {input} {output}) &> {log}
@@ -80,9 +80,9 @@ rule remove_PCR_duplicates:
 #indexing is required for separating species by samtools view
 rule index_bam:
     input:
-        "alignment/{sample}_net-seq-noPCRduplicates.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam"
     output:
-        "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam.bai"
+        "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai"
     log : "logs/index_bam/index_bam-{sample}.log"
     shell: """
         (samtools index {input}) &> {log}
@@ -90,11 +90,11 @@ rule index_bam:
 
 rule bam_separate_species:
     input:
-        bam = "alignment/{sample}_net-seq-noPCRduplicates.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam",
-        bai = "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers.bam.bai",
+        bam = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam",
+        bai = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai",
         fasta = [] if not SISAMPLES else config["combinedgenome"]["fasta"]
     output:
-        "alignment/{sample}_net-seq-noPCRduplicates-{species}.bam" if config["random-hexamer"] else "alignment/{sample}_net-seq-uniquemappers-{species}.bam"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-{{species}}.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers-{{species}}.bam"
     params:
         filterprefix = lambda wc: config["combinedgenome"]["spikein_prefix"] if wc.species=="experimental" else config["combinedgenome"]["experimental_prefix"],
         prefix = lambda wc: config["combinedgenome"]["experimental_prefix"] if wc.species=="experimental" else config["combinedgenome"]["spikein_prefix"]

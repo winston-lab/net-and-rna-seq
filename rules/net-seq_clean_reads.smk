@@ -4,7 +4,7 @@ rule clean_reads:
     input:
         lambda wc: SAMPLES[wc.sample]["fastq"]
     output:
-        fastq = "fastq/cleaned/{sample}_net-seq-trimmed.fastq.gz",
+        fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-trimmed.fastq.gz",
         log = "logs/clean_reads/clean_reads-{sample}.log"
     params:
         adapter = config["cutadapt"]["adapter"],
@@ -16,9 +16,9 @@ rule clean_reads:
 
 rule extract_molec_barcode:
     input:
-        "fastq/cleaned/{sample}_net-seq-trimmed.fastq.gz",
+        f"fastq/cleaned/{{sample}}_{ASSAY}-trimmed.fastq.gz",
     output:
-        fastq = "fastq/cleaned/{sample}_net-seq-clean.fastq.gz",
+        fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-clean.fastq.gz",
         barcodes = "qual_ctrl/molec_barcode/barcodes-{sample}.tsv",
         ligation = "qual_ctrl/molec_barcode/ligation-{sample}.tsv"
     threads: config["threads"]

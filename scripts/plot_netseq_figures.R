@@ -19,7 +19,7 @@ hmap_ybreaks = function(limits){
 
 
 main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, scaled_length, pct_cutoff, log_transform, pcount,
-                trim_pct, spread_type, refptlabel, endlabel, cmap, sortmethod, cluster_scale, cluster_samples, cluster_five, cluster_three, k,
+                trim_pct, spread_type, refptlabel, endlabel, cmap, sortmethod, cluster_scale, cluster_samples, cluster_five, cluster_three, k, assay,
                 heatmap_sample_both_out, heatmap_group_both_out, meta_sample_both_out, meta_sample_overlay_both_out, meta_group_both_out, meta_sampleanno_both_out, meta_groupanno_both_out, meta_sampleclust_both_out, meta_groupclust_both_out,
                 heatmap_sample_sense_out, heatmap_group_sense_out, meta_sample_sense_out, meta_sample_overlay_sense_out, meta_group_sense_out, meta_sampleanno_sense_out, meta_groupanno_sense_out, meta_sampleclust_sense_out, meta_groupclust_sense_out,
                 heatmap_sample_antisense_out, heatmap_group_antisense_out, meta_sample_antisense_out, meta_sample_overlay_antisense_out, meta_group_antisense_out, meta_sampleanno_antisense_out, meta_groupanno_antisense_out, meta_sampleclust_antisense_out, meta_groupclust_antisense_out,
@@ -39,7 +39,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             heatmap_base = heatmap_base +
                 geom_raster(aes(x=position, y=new_index, fill=log2(cpm+pcount)), interpolate=FALSE) +
                 scale_fill_viridis(option = cmap,
-                                   name= if (strand != "both"){bquote(bold(log[2] ~ .(strand) ~ "NET-seq" ~ signal))} else {bquote(bold(log[2] ~ "NET-seq" ~ signal))},
+                                   name= if (strand != "both"){bquote(bold(log[2] ~ .(strand) ~ .(assay) ~ signal))} else {bquote(bold(log[2] ~ .(assay) ~ signal))},
                                    limits = c(NA, flimit), oob=scales::squish,
                                    guide=guide_colorbar(title.position="top",
                                                         barwidth=20, barheight=1, title.hjust=0.5))
@@ -47,8 +47,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             heatmap_base = heatmap_base +
                 geom_raster(aes(x=position, y=new_index, fill=cpm), interpolate=FALSE) +
                 scale_fill_viridis(option = cmap,
-                                   name=if_else(strand != "both", paste(strand, "NET-seq signal"),
-                                                "NET-seq signal"),
+                                   name=if_else(strand != "both", paste(strand, assay, "signal"),
+                                                paste(assay, "signal")),
                                    limits = c(NA, flimit), oob=scales::squish,
                                    guide=guide_colorbar(title.position="top",
                                                         barwidth=20, barheight=1, title.hjust=0.5))
@@ -165,8 +165,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             scale_color_ptol(guide=guide_legend(label.position=ifelse(groupvar %in% c("sampleanno", "groupanno"), "right", "top"),
                                                 label.hjust=ifelse(groupvar %in% c("sampleanno", "groupanno"), 0, 0.5))) +
             scale_fill_ptol() +
-            ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
-                            "NET-seq signal")) +
+            ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
+                            paste(assay, "signal")) +
             theme_light() +
             theme(text = element_text(size=12, color="black", face="bold"),
                   axis.text = element_text(size=12, color="black"),
@@ -749,8 +749,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                 scale_color_manual(values=rep("#4477AA", 100)) +
                 scale_fill_manual(values=rep("#4477AA", 100)) +
                 facet_grid(replicate~group) +
-                ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
-                                "NET-seq signal"),
+                ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
+                                paste(assay, "signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="none")
         }
@@ -761,8 +761,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         format_sample_meta_overlay = function(df, strand){
             ggp = meta(df, strand=strand) +
                 scale_color_ptol() +
-                ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
-                                "NET-seq signal"),
+                ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
+                                paste(assay, "signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="right",
                       legend.key.width=unit(0.8, "cm"))
@@ -774,8 +774,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         format_group_meta = function(ggp, strand){
             ggp = ggp +
                 scale_color_ptol() +
-                ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
-                                "NET-seq signal"),
+                ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
+                                paste(assay, "signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="right",
                       legend.key.width=unit(0.8, "cm"))
@@ -787,8 +787,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         format_sampleclust_meta = function(ggp, strand){
             ggp = ggp +
                 facet_grid(. ~ group) +
-                ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
-                                "NET-seq signal"),
+                ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
+                                paste("signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="right",
                       legend.key.width=unit(1, "cm"))
@@ -800,8 +800,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         format_groupclust_meta = function(ggp, strand){
             ggp = ggp +
                 facet_grid(. ~ group) +
-                ggtitle(if_else(strand != "both", paste(strand, "NET-seq signal"),
-                                "NET-seq signal"),
+                ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
+                                paste("signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="right",
                       legend.key.width=unit(1, "cm"))
@@ -978,6 +978,7 @@ main(in_paths = snakemake@input[["matrices"]],
      cluster_five = snakemake@params[["cluster_five"]],
      cluster_three = snakemake@params[["cluster_three"]],
      k = snakemake@params[["k"]],
+    assay = snakemake@params[["assay"]],
      heatmap_sample_both_out = snakemake@output[["heatmap_sample_both"]],
      heatmap_sample_sense_out = snakemake@output[["heatmap_sample_sense"]],
      heatmap_sample_antisense_out = snakemake@output[["heatmap_sample_antisense"]],

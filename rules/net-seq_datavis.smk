@@ -17,7 +17,7 @@ rule make_stranded_annotations:
 rule compute_matrix:
     input:
         annotation = "datavis/{figure}/{annotation}.bed",
-        bw = "coverage/{norm}/{sample}_netseq-{readtype}-{norm}-{strand}.bw"
+        bw = f"coverage/{{norm}}/{{sample}}_{ASSAY}-{{readtype}}-{{norm}}-{{strand}}.bw"
     output:
         dtfile = temp("datavis/{figure}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.mat.gz"),
         matrix = temp("datavis/{figure}/{norm}/{annotation}_{sample}_{norm}-{readtype}-{strand}.tsv"),
@@ -57,33 +57,33 @@ rule plot_figures:
         matrices = expand("datavis/{{figure}}/{{norm}}/{{figure}}-allsamples-allannotations-{{norm}}-{{readtype}}-{strand}.tsv.gz", strand=["SENSE", "ANTISENSE"]),
         annotations = lambda wc: [v["path"] for k,v in FIGURES[wc.figure]["annotations"].items()]
     output:
-        heatmap_sample_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bysample-bothstrands.svg",
-        heatmap_sample_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bysample-sense.svg",
-        heatmap_sample_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bysample-antisense.svg",
-        heatmap_group_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bygroup-bothstrands.svg",
-        heatmap_group_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bygroup-sense.svg",
-        heatmap_group_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bygroup-antisense.svg",
-        metagene_sample_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bysample-bothstrands.svg",
-        metagene_sample_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bysample-sense.svg",
-        metagene_sample_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bysample-antisense.svg",
-        metagene_sample_overlay_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-sampleoverlay-bothstrands.svg",
-        metagene_sample_overlay_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-sampleoverlay-sense.svg",
-        metagene_sample_overlay_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-sampleoverlay-antisense.svg",
-        metagene_group_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bygroup-bothstrands.svg",
-        metagene_group_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bygroup-sense.svg",
-        metagene_group_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bygroup-antisense.svg",
-        metagene_sampleanno_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-sample-bothstrands.svg",
-        metagene_sampleanno_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-sample-sense.svg",
-        metagene_sampleanno_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-sample-antisense.svg",
-        metagene_groupanno_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-group-bothstrands.svg",
-        metagene_groupanno_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-group-sense.svg",
-        metagene_groupanno_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-group-antisense.svg",
-        metagene_sampleclust_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustersample-bothstrands.svg",
-        metagene_sampleclust_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustersample-sense.svg",
-        metagene_sampleclust_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustersample-antisense.svg",
-        metagene_groupclust_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-bothstrands.svg",
-        metagene_groupclust_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-sense.svg",
-        metagene_groupclust_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/netseq-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-antisense.svg",
+        heatmap_sample_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bysample-bothstrands.svg",
+        heatmap_sample_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bysample-sense.svg",
+        heatmap_sample_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bysample-antisense.svg",
+        heatmap_group_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bygroup-bothstrands.svg",
+        heatmap_group_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bygroup-sense.svg",
+        heatmap_group_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-heatmap-bygroup-antisense.svg",
+        metagene_sample_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bysample-bothstrands.svg",
+        metagene_sample_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bysample-sense.svg",
+        metagene_sample_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bysample-antisense.svg",
+        metagene_sample_overlay_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-sampleoverlay-bothstrands.svg",
+        metagene_sample_overlay_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-sampleoverlay-sense.svg",
+        metagene_sample_overlay_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-sampleoverlay-antisense.svg",
+        metagene_group_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bygroup-bothstrands.svg",
+        metagene_group_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bygroup-sense.svg",
+        metagene_group_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-bygroup-antisense.svg",
+        metagene_sampleanno_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-sample-bothstrands.svg",
+        metagene_sampleanno_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-sample-sense.svg",
+        metagene_sampleanno_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-sample-antisense.svg",
+        metagene_groupanno_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-group-bothstrands.svg",
+        metagene_groupanno_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-group-sense.svg",
+        metagene_groupanno_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byanno-group-antisense.svg",
+        metagene_sampleclust_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustersample-bothstrands.svg",
+        metagene_sampleclust_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustersample-sense.svg",
+        metagene_sampleclust_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustersample-antisense.svg",
+        metagene_groupclust_both = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-bothstrands.svg",
+        metagene_groupclust_sense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-sense.svg",
+        metagene_groupclust_antisense = "datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/{assay}-{figure}-{norm}-{status}_{condition}-v-{control}_{readtype}-metagene-byclustergroup-antisense.svg",
     params:
         # abusing snakemake a bit here...using params as output paths in order to use lambda functions
         annotations_out = lambda wc: ["datavis/{figure}/{norm}/{condition}-v-{control}/{status}/{readtype}/".format(**wc) + annotation + "_cluster-" + str(cluster) + ".bed" for annotation in FIGURES[wc.figure]["annotations"] for cluster in range(1, FIGURES[wc.figure]["annotations"][annotation]["n_clusters"]+1)],
@@ -107,6 +107,8 @@ rule plot_figures:
         cluster_five = lambda wc: [] if FIGURES[wc.figure]["parameters"]["arrange"] != "cluster" else FIGURES[wc.figure]["parameters"]["cluster_five"],
         cluster_three = lambda wc: [] if FIGURES[wc.figure]["parameters"]["arrange"] != "cluster" else FIGURES[wc.figure]["parameters"]["cluster_three"],
         k = lambda wc: [v["n_clusters"] for k,v in FIGURES[wc.figure]["annotations"].items()],
+        assay = {"rnaseq": "RNA-seq",
+                 "netseq": "NET-seq"}.get(ASSAY)
     conda: "../envs/tidyverse.yaml"
     script:
         "../scripts/plot_netseq_figures.R"
