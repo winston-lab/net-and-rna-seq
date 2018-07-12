@@ -82,7 +82,7 @@ rule index_bam:
     input:
         f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam"
     output:
-        "alignment/{sample}_net-seq-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai"
     log : "logs/index_bam/index_bam-{sample}.log"
     shell: """
         (samtools index {input}) &> {log}
