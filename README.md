@@ -1,9 +1,9 @@
 
-# NET-seq analysis pipeline
+# NET-seq and RNA-seq analysis pipeline
 
 ## description
 
-An analysis pipeline for NET-seq data with the following major steps:
+An analysis pipeline for NET-seq or RNA-seq data with the following major steps:
 
 - 3' adapter and quality trimming with [cutadapt](http://cutadapt.readthedocs.io/en/stable/guide.html)
 - processing of the 5' molecular barcode, if present
@@ -28,7 +28,7 @@ An analysis pipeline for NET-seq data with the following major steps:
 
 ### required files
 
-- FASTQ files of NET-seq libraries prepared as described in [our preprint](https://www.biorxiv.org/content/early/2018/06/15/347575). The pipeline has only been tested using Illumina sequencing data. FASTQ files should be demultiplexed but not otherwise modified.
+- FASTQ files of NET-seq libraries prepared as described in [our preprint](https://www.biorxiv.org/content/early/2018/06/15/347575) or RNA-seq libraries of the same library structure. The pipeline has only been tested using Illumina sequencing data. FASTQ files should be demultiplexed but not otherwise modified.
 
 - FASTA files:
     - the 'experimental' genome
@@ -45,14 +45,14 @@ An analysis pipeline for NET-seq data with the following major steps:
 **0**. Clone this repository.
 
 ```bash
-git clone https://github.com/winston-lab/net-seq.git
+git clone https://github.com/winston-lab/net-and-rna-seq.git
 ```
 
 **1**. Create and activate the `snakemake_default` virtual environment for the pipeline using conda. The virtual environment creation can take a while. If you've already created the `snakemake_default` environment from another one of my pipelines, this is the same environment, so you can skip creating the environment and just activate it.
 
 ```bash
 # navigate into the pipeline directory
-cd net-seq
+cd net-and-rna-seq
 
 # create the snakemake_default environment
 conda env create -v -f envs/default.yaml
