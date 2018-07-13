@@ -17,7 +17,7 @@ extract_molec_barcode:
     mem : 2000
 
 align:
-    time : 180
+    time : 720
     n : 8
     mem : 2000
 
