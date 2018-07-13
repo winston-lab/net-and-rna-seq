@@ -13,7 +13,7 @@ clean_reads:
     mem : 2000
 
 extract_molec_barcode:
-    time : 90
+    time : 120
     mem : 4000
 
 align:

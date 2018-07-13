@@ -33,7 +33,7 @@ rule plot_read_processing:
 
 rule build_spikein_counts_table:
     input:
-        total_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand("alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SISAMPLES),
+        total_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SISAMPLES),
         exp_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-experimental.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-experimental.bam", sample=SISAMPLES),
         si_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-spikein.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-spikein.bam", sample=SISAMPLES),
     output:
