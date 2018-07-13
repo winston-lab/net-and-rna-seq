@@ -17,7 +17,6 @@ hmap_ybreaks = function(limits){
     }
 }
 
-
 main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, scaled_length, pct_cutoff, log_transform, pcount,
                 trim_pct, spread_type, refptlabel, endlabel, cmap, sortmethod, cluster_scale, cluster_samples, cluster_five, cluster_three, k, assay,
                 heatmap_sample_both_out, heatmap_group_both_out, meta_sample_both_out, meta_sample_overlay_both_out, meta_group_both_out, meta_sampleanno_both_out, meta_groupanno_both_out, meta_sampleclust_both_out, meta_groupclust_both_out,
@@ -166,7 +165,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                                                 label.hjust=ifelse(groupvar %in% c("sampleanno", "groupanno"), 0, 0.5))) +
             scale_fill_ptol() +
             ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
-                            paste(assay, "signal")) +
+                            paste(assay, "signal"))) +
             theme_light() +
             theme(text = element_text(size=12, color="black", face="bold"),
                   axis.text = element_text(size=12, color="black"),
@@ -788,7 +787,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             ggp = ggp +
                 facet_grid(. ~ group) +
                 ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
-                                paste("signal")),
+                                paste(assay, "signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="right",
                       legend.key.width=unit(1, "cm"))
@@ -801,7 +800,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             ggp = ggp +
                 facet_grid(. ~ group) +
                 ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
-                                paste("signal")),
+                                paste(assay, "signal")),
                         subtitle = annotations[1]) +
                 theme(legend.position="right",
                       legend.key.width=unit(1, "cm"))
@@ -978,7 +977,7 @@ main(in_paths = snakemake@input[["matrices"]],
      cluster_five = snakemake@params[["cluster_five"]],
      cluster_three = snakemake@params[["cluster_three"]],
      k = snakemake@params[["k"]],
-    assay = snakemake@params[["assay"]],
+     assay = snakemake@params[["assay"]],
      heatmap_sample_both_out = snakemake@output[["heatmap_sample_both"]],
      heatmap_sample_sense_out = snakemake@output[["heatmap_sample_sense"]],
      heatmap_sample_antisense_out = snakemake@output[["heatmap_sample_antisense"]],
