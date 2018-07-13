@@ -3,7 +3,7 @@ library(GGally)
 library(viridis)
 library(forcats)
 
-main = function(intable, binsize, pcount, samplelist, outpath){
+main = function(intable, binsize, pcount, samplelist, assay, outpath){
     df = intable %>% read_tsv() %>%
         gather(key=sample, value=signal, -name) %>%
         filter(sample %in% samplelist) %>%
@@ -65,7 +65,7 @@ main = function(intable, binsize, pcount, samplelist, outpath){
     }
 
     mat = ggmatrix(plots, nrow=ncol(df), ncol=ncol(df),
-                   title = paste0("NET-seq signal, ", binsize, "nt bins"),
+                   title = paste0(assay, " signal, ", binsize, "nt bins"),
                    xAxisLabels = names(df), yAxisLabels = names(df), switch="both") +
                     theme_light() +
                     theme(plot.title = element_text(size=12, color="black", face="bold"),
@@ -86,5 +86,6 @@ main(intable = snakemake@input[[1]],
      binsize = snakemake@wildcards[["windowsize"]],
      pcount = snakemake@params[["pcount"]],
      samplelist = snakemake@params[["samplelist"]],
+     assay = snakemake@params[["assay"]],
      outpath = snakemake@output[[1]])
 

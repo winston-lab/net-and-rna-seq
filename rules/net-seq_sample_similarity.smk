@@ -30,7 +30,9 @@ rule plot_scatter_plots:
         "qual_ctrl/scatter_plots/{condition}-v-{control}/{status}/{condition}-v-{control}_{assay}-{norm}-scatterplots-{status}-window-{windowsize}.svg"
     params:
         pcount = lambda wc: 0.01*int(wc.windowsize),
-        samplelist = lambda wc: get_samples(wc.status, wc.norm, [wc.condition, wc.control])
+        samplelist = lambda wc: get_samples(wc.status, wc.norm, [wc.condition, wc.control]),
+        assay = {"rnaseq": "RNA-seq",
+                 "netseq": "NET-seq"}.get(ASSAY)
     conda: "../envs/tidyverse.yaml"
     script:
         "../scripts/plot_scatter_plots.R"
