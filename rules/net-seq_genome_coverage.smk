@@ -14,7 +14,7 @@ rule genome_coverage:
     output:
         "coverage/{counttype}/{sample}_{ASSAY}-{readtype}-{counttype}-{strand}.bedgraph",
     params:
-        strand = lambda wc: {"plus": "+", "minus": "-"}.get(wc.strand),
+        strand = lambda wc: {"plus": "-", "minus": "+"}.get(wc.strand),
         split = lambda wc: {"5end": "", "wholeread": "-split"}.get(wc.readtype),
         end = lambda wc: {"5end": "-5", "wholeread": ""}.get(wc.readtype)
     wildcard_constraints:
