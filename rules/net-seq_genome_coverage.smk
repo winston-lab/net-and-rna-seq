@@ -22,7 +22,7 @@ rule genome_coverage:
         strand = lambda wc: {"plus":  { True: "+",
                                         False: "-"},
                              "minus": { True: "-",
-                                        False: "+"}}.get(wc.strand).get(config["sequence-from-5prime"]),
+                                        False: "+"}}.get(wc.strand).get(ASSAY=="rnaseq" and config["sequence-from-5prime"]),
         split = lambda wc: {"5end": "", "wholeread": "-split"}.get(wc.readtype),
         end = lambda wc: {"5end": "-5", "wholeread": ""}.get(wc.readtype)
     wildcard_constraints:
