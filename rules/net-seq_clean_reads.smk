@@ -28,7 +28,8 @@ rule clean_reads:
     params:
         adapter = config["cutadapt"]["adapter"],
         trim_qual = config["cutadapt"]["trim_qual"],
-        polya_command = lambda wc: {"netseq": [],
+        polya_command = lambda wc: {"netseq": { True: [],
+                                                False: []},
                                     "rnaseq": { True: """-a "A{100}" -n 2""",
                                                 False:"""-g "A{100}" -n 2"""}
                                     }.get(ASSAY).get(config["sequence-from-5prime"])
