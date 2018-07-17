@@ -182,17 +182,17 @@ samples:
 # comparisons to be made in differential expression, data visualization, scatterplots, etc, etc.
 comparisons:
     libsizenorm:
-        spt6-1004-37C: WT-37C  # CONDITION: CONTROL . Tags must match 'group' tags in sample metadata
-        spt6-1004-30C: WT-30C
-        spt6-1004-37C: spt6-1004-30C
-        # spt6-YW-37C: WT-37C
-        # spt6-YW-30C: WT-30C
-        # spt6-YW-37C: spt6-YW-30C
-        # spt6-140-37C: WT-37C
-        # spt6-140-30C: WT-30C
-        # spt6-140-37C: spt6-140-30C
-        # spt6-delSH2: WT-30C
-        # WT-37C: WT-30C
+        - spt6-1004-37C: WT-37C  # CONDITION: CONTROL . Tags must match 'group' tags in sample metadata
+        - spt6-1004-30C: WT-30C
+        - spt6-1004-37C: spt6-1004-30C
+        # - spt6-YW-37C: WT-37C
+        # - spt6-YW-30C: WT-30C
+        # - spt6-YW-37C: spt6-YW-30C
+        # - spt6-140-37C: WT-37C
+        # - spt6-140-30C: WT-30C
+        # - spt6-140-37C: spt6-140-30C
+        # - spt6-delSH2: WT-30C
+        # - WT-37C: WT-30C
     spikenorm:
 
 # binsizes for scatterplots
