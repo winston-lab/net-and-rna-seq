@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# if sequencing happened from 3' end of RNA, (as in NET-seq)
+# the strand of the coverage is the opposite of the aligned strand
+# NOTE: '5end' coverage files generated are always the 5' end
+# of the read. This will be different for RNA-seq libraries
+# sequence from 5' or 3' of RNA.
 rule genome_coverage:
     input:
         lambda wc:  {True:
@@ -14,7 +19,10 @@ rule genome_coverage:
     output:
         "coverage/{counttype}/{sample}_{ASSAY}-{readtype}-{counttype}-{strand}.bedgraph",
     params:
-        strand = lambda wc: {"plus": "-", "minus": "+"}.get(wc.strand),
+        strand = lambda wc: {"plus":  { True: "+",
+                                        False: "-"},
+                             "minus": { True: "-",
+                                        False: "+"}}.get(wc.strand).get(config["sequence-from-5prime"]),
         split = lambda wc: {"5end": "", "wholeread": "-split"}.get(wc.readtype),
         end = lambda wc: {"5end": "-5", "wholeread": ""}.get(wc.readtype)
     wildcard_constraints:

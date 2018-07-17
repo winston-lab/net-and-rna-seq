@@ -23,7 +23,7 @@ rule align:
     input:
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"]) + ".{num}.bt2", num = [1,2,3,4]),
         expand(config["tophat2"]["bowtie2-index-path"] + "/" + (config["genome"]["name"] if not SISAMPLES else config["combinedgenome"]["name"]) + ".rev.{num}.bt2", num=[1,2]),
-        fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-clean.fastq.gz" if config["random-hexamer"] else f"fastq/cleaned/{{sample}}_{ASSAY}-trimmed.fastq.gz"
+        fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-clean.fastq.gz"
     output:
         aligned = "alignment/{sample}/accepted_hits.bam",
         unaligned = "alignment/{sample}/unmapped.bam",
