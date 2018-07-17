@@ -5,8 +5,9 @@
 
 An analysis pipeline for NET-seq or RNA-seq data with the following major steps:
 
-- 3' adapter and quality trimming with [cutadapt](http://cutadapt.readthedocs.io/en/stable/guide.html)
 - processing of the 5' molecular barcode, if present
+- 3' adapter and quality trimming with [cutadapt](http://cutadapt.readthedocs.io/en/stable/guide.html)
+    - if analyzing RNA-seq, also trim poly-A tails
 - alignment with [Tophat2](https://ccb.jhu.edu/software/tophat/index.shtml)
 - selection of unique mappers
 - removal of PCR duplicates, if molecular barcodes were used
@@ -28,7 +29,7 @@ An analysis pipeline for NET-seq or RNA-seq data with the following major steps:
 
 ### required files
 
-- FASTQ files of NET-seq libraries prepared as described in [our preprint](https://www.biorxiv.org/content/early/2018/06/15/347575) or RNA-seq libraries of the same library structure. The pipeline has only been tested using Illumina sequencing data. FASTQ files should be demultiplexed but not otherwise modified.
+- FASTQ files of NET-seq libraries prepared as described in [our preprint](https://www.biorxiv.org/content/early/2018/06/15/347575) or RNA-seq libraries of the same library structure (legacy RNA-seq libraries sequenced from the 5'-end are also supported). Libraries with or without random hexamer molecular barcodes are both supported, with or without spikeins. The pipeline has only been tested using Illumina sequencing data. FASTQ files should be demultiplexed but not otherwise modified.
 
 - FASTA files:
     - the 'experimental' genome
