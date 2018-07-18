@@ -5,7 +5,7 @@ rule extract_molec_barcode:
     input:
         lambda wc: SAMPLES[wc.sample]["fastq"]
     output:
-        fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-barcode-processed.fastq.gz",
+        fastq = temp(f"fastq/cleaned/{{sample}}_{ASSAY}-barcode-processed.fastq.gz"),
         barcodes = "qual_ctrl/molec_barcode/barcodes-{sample}.tsv",
         ligation = "qual_ctrl/molec_barcode/ligation-{sample}.tsv"
     threads: config["threads"]
