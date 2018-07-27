@@ -91,6 +91,8 @@ onsuccess:
 
 rule all:
     input:
+        #require config file so that it gets archived
+        "config.yaml",
         #FastQC
         f'qual_ctrl/fastqc/{ASSAY}-per_base_sequence_content.svg',
         #alignment
