@@ -6,7 +6,6 @@ localrules:
 rule fastqc_prealignment:
     input:
         lambda wc: {"raw": SAMPLES[wc.sample]["fastq"],
-                    "trimmed": f"fastq/cleaned/{wc.sample}_{ASSAY}-trimmed.fastq.gz",
                     "clean": f"fastq/cleaned/{wc.sample}_{ASSAY}-clean.fastq.gz"
                    }.get(wc.read_status)
     output:
@@ -15,7 +14,7 @@ rule fastqc_prealignment:
         fname = lambda wc: re.split('.fq|.fastq', os.path.split(SAMPLES[wc.sample]["fastq"])[1])[0] if wc.read_status=="raw" else f"{wc.sample}_{ASSAY}-{wc.read_status}".format(**wc),
         adapter = config["cutadapt"]["adapter"]
     wildcard_constraints:
-        read_status="raw|trimmed|clean"
+        read_status="raw|clean"
     threads : config["threads"]
     log: "logs/fastqc/fastqc_{read_status}_{sample}.log"
     shell: """
@@ -89,7 +88,7 @@ fastqc_dict = {
 rule fastqc_aggregate:
     input:
         raw = expand("qual_ctrl/fastqc/raw/{sample}_fastqc-data-raw.txt", sample=SAMPLES),
-        clean = expand("qual_ctrl/fastqc/clean/{sample}_fastqc-data-clean.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/trimmed/{sample}_fastqc-data-trimmed.txt", sample=SAMPLES),
+        clean = expand("qual_ctrl/fastqc/clean/{sample}_fastqc-data-clean.txt", sample=SAMPLES),
         aligned = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}_fastqc-data-aligned_noPCRdup.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/unique_mappers/{sample}_fastqc-data-unique_mappers.txt", sample=SAMPLES),
         unaligned = expand("qual_ctrl/fastqc/unaligned/{sample}_fastqc-data-unaligned.txt", sample=SAMPLES),
     output:
