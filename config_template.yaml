@@ -22,6 +22,8 @@ genome:
     fasta: ../../genome/S_cerevisiae.R64-2-1.fa  # path to experimental fasta file
     # spikein_fasta: ../../../spt5/genome/S_pombe.ASM294v2.fa  # path to spikein fasta file, if any samples have spikein
     transcripts: ../../genome/annotations/Scer_polIItranscripts-adjustedTSS.bed  # path to BED6+ file of transcript annotations
+    gff: ../genome/S_pombe.ASM294v2.gff
+    # spikein_gff: ../genome/S_pombe.ASM294v2.gff
     # spikein_transcripts: ../../genome/annotations/S_pombe_alltranscripts-adjustedTSS.bed  # path to BED6+ file of spikein transcript annotations, if any samples have spikein
 
 spikein-pct: 0  # [FLOAT] percent spike-in added, if any samples have spikein. This is only used to scale spike-in normalized coverage so it is on the same scale as library size normalized coverage files
@@ -224,6 +226,15 @@ tophat2:
     max-coverage-intron: 10000  # [INT]
     min-segment-intron: 50  # [INT]
     max-segment-intron: 500000  # [INT]
+
+# settings for transcript annotation
+stringtie:
+    min-isoform-abundance: 0.1 # [FLOAT in (0,1)] The minimum isoform abundance of called transcripts as a fraction of the most abundant transcript assembled at a given locus.
+    min-transcript-length: 50 # [INT] Minimum length allowed for called transcripts.
+    min-splice-distance:  10 # [INT] Junctions that don't have spliced reads aligning across them with at least this amount of bases on both sides are filtered out.
+    min-splicejunction-coverage: 1 # [FLOAT] There should be at least this many spliced reads aligning across a junction.
+    min-transcript-coverage: 2.5 # [FLOAT] Minimum read coverage allowed for the predicted transcripts.
+    min-gap-length: 20 # [INT] Minimum locus gap separation value. Reads mapped closer than this distance are merged together in the same processing bundle.
 
 # DESeq2 differential expression settings
 deseq:
