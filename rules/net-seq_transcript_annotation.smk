@@ -41,4 +41,38 @@ rule merge_called_transcripts:
         stringtie --merge {input.called} -v -o {output} -G {input.reference} -m {params.min_transcript_length} -g {params.min_gap_length} -i -l stringtie
         """
 
+#TODO: give transcripts from annotation higher priority than those called by stringtie when merging overlapping
+rule collapse_transcripts_to_genes:
+    input:
+        "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts.gff"
+    output:
+        "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-collapsed.bed"
+    params:
+        cluster_dist = -30
+    shell: """
+        # transform transcript entries in GFF to BED format without gene name
+        awk 'BEGIN{{FS=OFS="\t"}} NR>2 && $3=="transcript" {{print $1, $4-1, $5, $6, $7 }}' {input} | \
+        # extract the same transcript rows again for gene name information
+        paste - <(awk 'BEGIN{{FS=OFS="\t"}}NR>2 && $3=="transcript"' {input} | \
+            # if no gene name, use stringtie gene ID as gene name
+            sed -e '/gene_name/!s/gene_id/gene_name/' | \
+            # extract gene name from GFF tags
+            grep -oP '(?<=gene_name \\").*?(?=\\";)') | \
+        awk 'BEGIN{{FS=OFS="\t"}}{{print $1, $2, $3, $6, $4, $5}}' | \
+        # cluster annotations that overlap by cluster dist
+        sort -k1,1 -k2,2n | bedtools cluster -i stdin -s -d {params.cluster_dist} | \
+        # keep the highest scoring annotation from each cluster
+        sort -k7,7n -k5,5n | bedtools groupby -g 7 -c 1,2,3,4,5,6 -o first | cut --complement -f1 > {output}
+        """
+
+
+
+
+
+
+
+
+
+
+
 
