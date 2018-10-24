@@ -79,6 +79,7 @@ include: "rules/net-seq_library_processing_summary.smk"
 include: "rules/net-seq_sample_similarity.smk"
 include: "rules/net-seq_datavis.smk"
 include: "rules/net-seq_differential_levels.smk"
+include: "rules/net-seq_transcript_annotation.smk"
 
 localrules:
     all,
