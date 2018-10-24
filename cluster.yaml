@@ -86,6 +86,10 @@ plot_scatter_plots:
     time : 20
     mem : 8000
 
+call_transcripts:
+    time: 15
+    mem: 1000
+
 call_diffexp_transcripts:
     time: 10
     mem: 10000
