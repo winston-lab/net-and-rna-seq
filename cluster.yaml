@@ -90,7 +90,7 @@ call_transcripts:
     time: 15
     mem: 1000
 
-call_diffexp_transcripts:
+differential_expression:
     time: 10
     mem: 10000
 

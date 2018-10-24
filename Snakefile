@@ -82,10 +82,7 @@ include: "rules/net-seq_differential_levels.smk"
 include: "rules/net-seq_transcript_annotation.smk"
 
 localrules:
-    all,
-    # make_ratio_annotation,
-    # cat_ratio_counts,
-    # cat_direction_counts
+    all
 
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
@@ -109,10 +106,8 @@ rule all:
         #datavis
         expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
-        #expand(expand("ratios/{{ratio}}/{condition}-v-{control}/netseq-{{ratio}}_{{status}}_{condition}-v-{control}_ecdf.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), ratio=config["ratios"], status=["all", "passing"]),
-        # expand("directionality/{annotation}/allsamples_{annotation}.tsv.gz", annotation=config["directionality"])
-        expand(f"diff_exp/{{condition}}-v-{{control}}/{{condition}}-v-{{control}}-{ASSAY}-results-libsizenorm-all.tsv", zip, condition=conditiongroups, control=controlgroups),
-        expand(f"diff_exp/{{condition}}-v-{{control}}/{{condition}}-v-{{control}}-{ASSAY}-results-spikenorm-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
+        expand(f"diff_exp/{{condition}}-v-{{control}}/libsizenorm/{{condition}}-v-{{control}}_{ASSAY}-libsizenorm-diffexp-results-all.tsv", zip, condition=conditiongroups, control=controlgroups),
+        expand(f"diff_exp/{{condition}}-v-{{control}}/spikenorm/{{condition}}-v-{{control}}_{ASSAY}-spikenorm-diffexp-results-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
 
 # rule make_ratio_annotation:
 #     input:
