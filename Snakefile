@@ -28,8 +28,7 @@ if comparisons_si:
 COUNTTYPES = ["counts", "sicounts"] if SISAMPLES else ["counts"]
 NORMS = ["libsizenorm", "spikenorm"] if SISAMPLES else ["libsizenorm"]
 
-# CATEGORIES = ["genic", "antisense", "convergent", "divergent", "intergenic"]
-CATEGORIES = ["genic", "antisense"]
+CATEGORIES = ["genic", "antisense", "convergent", "divergent", "intergenic"]
 
 FIGURES = config["figures"]
 
@@ -115,7 +114,8 @@ rule all:
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
         expand(f"diff_exp/{{condition}}-v-{{control}}/libsizenorm/{{condition}}-v-{{control}}_{ASSAY}-libsizenorm-diffexp-results-all.tsv", zip, condition=conditiongroups, control=controlgroups),
         expand(f"diff_exp/{{condition}}-v-{{control}}/spikenorm/{{condition}}-v-{{control}}_{ASSAY}-spikenorm-diffexp-results-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
-        expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"])
+        expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]),
+        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{{category}}/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups_si, control=controlgroups_si), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"])
 
 # rule make_ratio_annotation:
 #     input:
