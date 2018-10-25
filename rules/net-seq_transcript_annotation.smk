@@ -6,7 +6,15 @@ localrules:
 
 rule call_transcripts:
     input:
-        bam = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-{{species}}.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers-{{species}}.bam"
+        bam = lambda wc: {True:
+                            {   True: f"alignment/{wc.sample}_{ASSAY}-noPCRduplicates-{wc.species}.bam",
+                                False: f"alignment/{wc.sample}_{ASSAY}-noPCRduplicates.bam"
+                            },
+                          False:
+                            {   True: f"alignment/{wc.sample}_{ASSAY}-uniquemappers-{wc.species}.bam",
+                              False: f"alignment/{wc.sample}_{ASSAY}-uniquemappers.bam"
+                            }
+                        }.get(config["random-hexamer"]).get(len(SISAMPLES)>0)
     output:
         gtf = "transcript_annotation/{sample}_{ASSAY}-{species}-transcripts.gtf",
     params:
