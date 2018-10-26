@@ -115,10 +115,10 @@ rule all:
         expand(f"diff_exp/{{condition}}-v-{{control}}/libsizenorm/{{condition}}-v-{{control}}_{ASSAY}-libsizenorm-diffexp-results-all.tsv", zip, condition=conditiongroups, control=controlgroups),
         expand(f"diff_exp/{{condition}}-v-{{control}}/spikenorm/{{condition}}-v-{{control}}_{ASSAY}-spikenorm-diffexp-results-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
         expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]),
-        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{{category}}/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups_si, control=controlgroups_si), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]),
+        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{{category}}/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups_si, control=controlgroups_si), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]) if SISAMPLES and comparisons_si else [],
         #differential expression summary
         expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups, control=controlgroups), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY),
-        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if comparisons_si else [],
+        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
 
 # rule make_ratio_annotation:
 #     input:
