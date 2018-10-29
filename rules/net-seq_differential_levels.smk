@@ -53,3 +53,23 @@ rule differential_expression:
     script:
         "../scripts/call_diffexp_transcripts.R"
 
+rule summarise_diffexp_results:
+    input:
+        total = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-all.tsv",
+        genic = "diff_exp/{condition}-v-{control}/{norm}/genic/{condition}-v-{control}_{assay}-{norm}-diffexp-results-genic-all.tsv",
+        antisense = "diff_exp/{condition}-v-{control}/{norm}/antisense/{condition}-v-{control}_{assay}-{norm}-diffexp-results-antisense-all.tsv",
+        convergent = "diff_exp/{condition}-v-{control}/{norm}/convergent/{condition}-v-{control}_{assay}-{norm}-diffexp-results-convergent-all.tsv",
+        divergent = "diff_exp/{condition}-v-{control}/{norm}/divergent/{condition}-v-{control}_{assay}-{norm}-diffexp-results-divergent-all.tsv",
+        intergenic = "diff_exp/{condition}-v-{control}/{norm}/intergenic/{condition}-v-{control}_{assay}-{norm}-diffexp-results-intergenic-all.tsv",
+    output:
+        summary_table = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-summary.tsv",
+        mosaic = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-mosaic.svg",
+        maplot = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-maplot.svg",
+        volcano = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-volcano.svg",
+        volcano_free = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-volcano-freescale.svg",
+    params:
+        lfc = config["deseq"]["fold-change-threshold"],
+        alpha = config["deseq"]["fdr"]
+    conda: "../envs/tidyverse.yaml"
+    script: "../scripts/plot_diffexp_summary.R"
+
