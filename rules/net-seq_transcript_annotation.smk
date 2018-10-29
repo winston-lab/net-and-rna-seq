@@ -50,7 +50,7 @@ rule merge_called_transcripts:
 rule annotate_merged_transcripts:
     input:
         called = "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts.bed",
-        reference = lambda wc: config["genome"]["transcripts"] if wc.species=="experimental" else config["genome"]["spikein_transcripts"]
+        reference = lambda wc: config["genome"]["transcript_annotation"] if wc.species=="experimental" else config["spike_in"]["transcript_annotation"]
     output:
         "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-annotated.bed"
     log: "logs/annotate_merged_transcripts/annotate_merged_transcripts_{condition}-v-{control}_{species}.log"

@@ -9,6 +9,8 @@ configfile: "config.yaml"
 subworkflow build_annotations:
     workdir: config["genome"]["annotation_workflow"]
 
+configfile: build_annotations("config.yaml")
+
 ASSAY = config["assay"]
 
 SAMPLES = config["samples"]

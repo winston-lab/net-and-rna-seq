@@ -8,22 +8,15 @@ assay: netseq # [netseq|rnaseq]
 random-hexamer: False  # [True|False] Does the adapter have the random hexamer molecular barcode?
 sequence-from-5prime: False  # [True|False] Did sequencing occur from the 5' end of the RNA? This should always be False for NET-seq libraries, and is usually False for RNA-seq libraries except for some legacy library preparation protocols
 
-# for the combined experimental and spikein genomes
-# can be commented out if no samples have spikein
-combinedgenome:
-    name: ScSp  # [STRING] used only to name the bowtie2 indices
-    fasta: ../../genome/ScSp.R64.2-1.ASM294v2.fa  # path to combined fasta file
-    experimental_prefix: Scer_  # prefix for experimental species
-    spikein_prefix: Spom_  # prefix for spikein species
-
 # for individual genomes
 genome:
-    name: Sc  # [STRING] used only to name the bowtie2 indices
-    fasta: ../../genome/S_cerevisiae.R64-2-1.fa  # path to experimental fasta file
-    # spikein_fasta: ../../../spt5/genome/S_pombe.ASM294v2.fa  # path to spikein fasta file, if any samples have spikein
-    transcripts: ../../genome/annotations/Scer_polIItranscripts-adjustedTSS.bed  # path to BED6+ file of transcript annotations
-    # spikein_transcripts: ../../genome/annotations/S_pombe_alltranscripts-adjustedTSS.bed  # path to BED6+ file of spikein transcript annotations, if any samples have spikein
     annotation_workflow: ../build-annotations-pombe/
+
+spike_in:
+    name: Sc  # [STRING] used only to name the bowtie2 indices
+    proportion: 0.1
+    fasta: ../../genome/S_cerevisiae.R64-2-1.fa  # path to experimental fasta file
+    transcript_annotation: ../../genome/annotations/Scer_polIItranscripts-adjustedTSS.bed  # path to BED6+ file of transcript annotations
 
 spikein-pct: 0  # [FLOAT] percent spike-in added, if any samples have spikein. This is only used to scale spike-in normalized coverage so it is on the same scale as library size normalized coverage files
 
