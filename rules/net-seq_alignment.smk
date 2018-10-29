@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 localrules:
+    build_combined_genome,
     bowtie2_build,
     index_bam,
 
@@ -116,7 +117,7 @@ rule bam_separate_species:
     input:
         bam = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam",
         bai = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai",
-        fasta = "{directory}/{bn}.fa".format(directory = os.path.split(config["genome"]["fasta"])[0], bn=basename) if SISAMPLES else config["genome"]["fasta"],
+        fasta = "{directory}/{bn}.fa".format(directory = os.path.split(config["genome"]["fasta"])[0], bn=basename) if SISAMPLES else [],
     output:
         f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-{{species}}.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers-{{species}}.bam"
     params:
