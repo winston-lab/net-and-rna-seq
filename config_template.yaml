@@ -13,12 +13,10 @@ genome:
     annotation_workflow: ../build-annotations-pombe/
 
 spike_in:
-    name: Sc  # [STRING] used only to name the bowtie2 indices
+    name: Scer  # [STRING] used only to name the bowtie2 indices
     proportion: 0.1
     fasta: ../../genome/S_cerevisiae.R64-2-1.fa  # path to experimental fasta file
     transcript_annotation: ../../genome/annotations/Scer_polIItranscripts-adjustedTSS.bed  # path to BED6+ file of transcript annotations
-
-spikein-pct: 0  # [FLOAT] percent spike-in added, if any samples have spikein. This is only used to scale spike-in normalized coverage so it is on the same scale as library size normalized coverage files
 
 # sample metadata
 samples:
