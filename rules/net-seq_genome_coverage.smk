@@ -54,7 +54,7 @@ rule normalize_genome_coverage:
     output:
         normalized = "coverage/{norm}/{sample}_{ASSAY}-{readtype}-{norm}-{strand}.bedgraph",
     params:
-        scale_factor = lambda wc: config["spikein-pct"] if wc.norm=="spikenorm" else 1
+        scale_factor = lambda wc: config["spike_in"]["proportion"] if wc.norm=="spikenorm" else 1
     wildcard_constraints:
         norm="libsizenorm|spikenorm",
         strand="plus|minus"
@@ -79,7 +79,7 @@ rule make_stranded_bedgraph:
 rule bedgraph_to_bigwig:
     input:
         bedgraph = "coverage/{norm}/{sample}_{ASSAY}-{readtype}-{norm}-{strand}.bedgraph",
-        fasta = lambda wc: config["genome"]["spikein_fasta"] if wc.norm=="sicounts" else config["genome"]["fasta"]
+        fasta = lambda wc: config["spike_in"]["fasta"] if wc.norm=="sicounts" else config["genome"]["fasta"]
     output:
         "coverage/{norm}/{sample}_{ASSAY}-{readtype}-{norm}-{strand}.bw",
     params:
