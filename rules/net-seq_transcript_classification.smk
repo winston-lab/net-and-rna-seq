@@ -32,7 +32,7 @@ rule classify_genic_diffexp_transcript_annotation:
 rule classify_antisense_diffexp_transcript_annotation:
     input:
         results = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-{direction}.tsv",
-        transcript_annotation = config["genome"]["transcript_annotation"]
+        transcript_annotation = os.path.abspath(build_annotations(config["genome"]["transcript_annotation"]))
     output:
         table = "diff_exp/{condition}-v-{control}/{norm}/antisense/{condition}-v-{control}_{assay}-{norm}-diffexp-results-antisense-{direction}.tsv",
         bed = "diff_exp/{condition}-v-{control}/{norm}/antisense/{condition}-v-{control}_{assay}-{norm}-diffexp-results-antisense-{direction}.bed",
@@ -60,9 +60,9 @@ rule classify_antisense_diffexp_transcript_annotation:
 # 5. add new header
 rule classify_convergent_diffexp_transcript_annotation:
     input:
-        transcript_anno = config["genome"]["transcript_annotation"],
-        conv_anno = build_annotations("annotations/" + config["genome"]["name"] + "_convergent-regions.bed"),
-        genic_anno = build_annotations("annotations/" + config["genome"]["name"] + "_genic-regions.bed"),
+        transcript_anno = os.path.abspath(build_annotations(config["genome"]["transcript_annotation"])),
+        conv_anno = os.path.abspath(build_annotations("annotations/" + config["genome"]["name"] + "_convergent-regions.bed")),
+        genic_anno = os.path.abspath(build_annotations("annotations/" + config["genome"]["name"] + "_genic-regions.bed")),
         results = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-{direction}.tsv",
     output:
         table = "diff_exp/{condition}-v-{control}/{norm}/convergent/{condition}-v-{control}_{assay}-{norm}-diffexp-results-convergent-{direction}.tsv",
@@ -95,9 +95,9 @@ rule classify_convergent_diffexp_transcript_annotation:
 # 5. add new header
 rule classify_divergent_diffexp_transcript_annotation:
     input:
-        transcript_anno = config["genome"]["transcript_annotation"],
-        div_anno = build_annotations("annotations/" + config["genome"]["name"] + "_divergent-regions.bed"),
-        genic_anno = build_annotations("annotations/" + config["genome"]["name"] + "_genic-regions.bed"),
+        transcript_anno = os.path.abspath(build_annotations(config["genome"]["transcript_annotation"])),
+        div_anno = os.path.abspath(build_annotations("annotations/" + config["genome"]["name"] + "_divergent-regions.bed")),
+        genic_anno = os.path.abspath(build_annotations("annotations/" + config["genome"]["name"] + "_genic-regions.bed")),
         results = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-{direction}.tsv",
     output:
         table = "diff_exp/{condition}-v-{control}/{norm}/divergent/{condition}-v-{control}_{assay}-{norm}-diffexp-results-divergent-{direction}.tsv",
@@ -127,9 +127,9 @@ rule classify_divergent_diffexp_transcript_annotation:
 # 5. add back header
 rule classify_intergenic_diffexp_transcript_annotation:
     input:
-        intergenic_anno = build_annotations("annotations/" + config["genome"]["name"] + "_intergenic-regions.bed"),
-        transcript_anno = config["genome"]["transcript_annotation"],
-        genic_anno = build_annotations("annotations/" + config["genome"]["name"] + "_genic-regions.bed"),
+        intergenic_anno = os.path.abspath(build_annotations("annotations/" + config["genome"]["name"] + "_intergenic-regions.bed")),
+        transcript_anno = os.path.abspath(build_annotations(config["genome"]["transcript_annotation"])),
+        genic_anno = os.path.abspath(build_annotations("annotations/" + config["genome"]["name"] + "_genic-regions.bed")),
         results = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-{direction}.tsv",
     output:
         table = "diff_exp/{condition}-v-{control}/{norm}/intergenic/{condition}-v-{control}_{assay}-{norm}-diffexp-results-intergenic-{direction}.tsv",
