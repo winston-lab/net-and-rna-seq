@@ -199,7 +199,7 @@ cutadapt:
 
 # tophat2 alignment settings
 tophat2:
-    bowtie2-index-path: ../../genome/bowtie2_indexes  # directory to create index files, if they don't already exist in that directory
+    index-path: ../../genome/bowtie2_indexes  # directory to create index files, if they don't already exist in that directory
     read-mismatches: 3  # [INT]
     read-gap-length: 2  # [INT]
     read-edit-dist: 3  # [INT]
