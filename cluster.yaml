@@ -31,7 +31,7 @@ remove_PCR_duplicates:
     mem : 2000
 
 fastqc_prealignment:
-    time : 20
+    time : 15
     n : 2
     mem : 4000
 
@@ -41,7 +41,7 @@ fastqc_postalignment:
     mem : 4000
 
 plot_fastqc_summary:
-    time: 10
+    time: 3
     n: 1
     mem: 8000
 
