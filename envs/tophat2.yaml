@@ -4,5 +4,4 @@ channels:
     - conda-forge
 dependencies:
     - tophat=2.1.1
-    - samtools=1.8
 
