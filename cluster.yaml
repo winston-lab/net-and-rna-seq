@@ -28,7 +28,7 @@ select_unique_mappers:
 
 remove_PCR_duplicates:
     time : 180
-    mem : 1000
+    mem : 1400
 
 fastqc_prealignment:
     time : 15
@@ -52,7 +52,7 @@ plot_read_processing:
 
 genome_coverage:
     time : 5
-    mem : 1
+    mem : 50
 
 normalize_genome_coverage:
     time : 3
