@@ -30,6 +30,10 @@ remove_PCR_duplicates:
     time : 180
     mem : 1400
 
+bam_separate_species:
+    time : 4
+    mem : 50
+
 fastqc_prealignment:
     time : 15
     n : 2
