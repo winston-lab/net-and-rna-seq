@@ -89,11 +89,16 @@ include: "rules/net-seq_differential_levels.smk"
 include: "rules/net-seq_transcript_annotation.smk"
 include: "rules/net-seq_transcript_classification.smk"
 
-localrules:
-    all
-
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
+
+localrules: all
+
+def statuscheck(dict1, dict2):
+    return(["passing"] if dict1 == dict2 else ["all", "passing"])
+
+def conditioncheck(conditionlist):
+    return(conditionlist if len(conditionlist)==1 else conditionlist.append("all"))
 
 rule all:
     input:
@@ -108,12 +113,12 @@ rule all:
         expand("coverage/{norm}/{sample}_{assay}-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], assay=ASSAY),
         #quality control
         f"qual_ctrl/read_processing/{ASSAY}_read-processing-loss.svg",
-        expand(f"qual_ctrl/spikein/{ASSAY}_spikein-plots-{{status}}.svg", status=["all", "passing"]) if SISAMPLES else [],
-        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"], assay=ASSAY),
-        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), status=["all", "passing"], windowsize=config["scatterplot_binsizes"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
+        expand(f"qual_ctrl/spikein/{ASSAY}_spikein-plots-{{status}}.svg", status=statuscheck(SISAMPLES, SIPASSING)) if SISAMPLES else [],
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-libsizenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditioncheck(conditiongroups), control=conditioncheck(controlgroups)), status=statuscheck(SAMPLES, PASSING), windowsize=config["scatterplot_binsizes"], assay=ASSAY),
+        expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditioncheck(conditiongroups_si), control=conditioncheck(controlgroups_si)), status=statuscheck(SISAMPLES, SIPASSING), windowsize=config["scatterplot_binsizes"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
         #datavis
-        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups_si+["all"], control=controlgroups_si+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
-        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditiongroups+["all"], control=controlgroups+["all"]), figure=FIGURES, status=["all","passing"], readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
+        expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups_si), control=conditioncheck(controlgroups_si)), figure=FIGURES, status=statuscheck(SISAMPLES, SIPASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
+        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups), control=conditioncheck(controlgroups), figure=FIGURES, status=statuscheck(SAMPLES, PASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
         expand(f"diff_exp/{{condition}}-v-{{control}}/libsizenorm/{{condition}}-v-{{control}}_{ASSAY}-libsizenorm-diffexp-results-all.tsv", zip, condition=conditiongroups, control=controlgroups),
         expand(f"diff_exp/{{condition}}-v-{{control}}/spikenorm/{{condition}}-v-{{control}}_{ASSAY}-spikenorm-diffexp-results-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
         expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]),
@@ -121,102 +126,4 @@ rule all:
         #differential expression summary
         expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups, control=controlgroups), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY),
         expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
-
-# rule make_ratio_annotation:
-#     input:
-#         lambda wc: config["ratios"][wc.ratio]["path"]
-#     params:
-#         totalsize = lambda wc: config["ratios"][wc.ratio]["numerator"]["upstream"] + config["ratios"][wc.ratio]["numerator"]["dnstream"] + config["ratios"][wc.ratio]["denominator"]["upstream"] + config["ratios"][wc.ratio]["denominator"]["dnstream"],
-#     output:
-#         "ratios/{ratio}/{ratio}.bed"
-#     log: "logs/make_ratio_annotation/make_ratio_annotation-{ratio}.log"
-#     shell:  """
-#         (bash scripts/makeStrandedBed.sh {input} | awk 'BEGIN{{FS=OFS="\t"}} ($3-$2)>={params.totalsize}' > {output}) &> {log}
-#         """
-
-# rule ratio_counts:
-#     input:
-#         annotation = "ratios/{ratio}/{ratio}.bed",
-#         bw = "coverage/libsizenorm/{sample}-netseq-libsizenorm-5end-SENSE.bw"
-#     output:
-#         dtfile = temp("ratios/{ratio}/{ratio}_{fractype}_{sample}.mat.gz"),
-#         matrix = temp("ratios/{ratio}/{ratio}_{fractype}_{sample}.tsv"),
-#         melted = temp("ratios/{ratio}/{ratio}_{fractype}_{sample}-melted.tsv.gz"),
-#     params:
-#         group = lambda wc : SAMPLES[wc.sample]["group"],
-#         upstream = lambda wc: config["ratios"][wc.ratio][wc.fractype]["upstream"],
-#         dnstream = lambda wc: config["ratios"][wc.ratio][wc.fractype]["dnstream"],
-#         refpoint = lambda wc: config["ratios"][wc.ratio][wc.fractype]["refpoint"]
-#     threads: config["threads"]
-#     log: "logs/ratio_counts/ratio_counts-{ratio}-{fractype}-{sample}.log"
-#     shell: """
-#         (computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize $(echo {params.upstream} + {params.dnstream} | bc) --averageTypeBins sum -p {threads}) &> {log}
-#         (Rscript scripts/melt_matrix.R -i {output.matrix} -r TSS --group {params.group} -s {wildcards.sample} -a none -b $(echo {params.upstream} + {params.dnstream} | bc) -u {params.upstream} -o {output.melted}) &>> {log}
-#         """
-
-# rule cat_ratio_counts:
-#     input:
-#         expand("ratios/{{ratio}}/{{ratio}}_{{fractype}}_{sample}-melted.tsv.gz", sample=SAMPLES)
-#     output:
-#         "ratios/{ratio}/allsamples_{ratio}_{fractype}.tsv.gz"
-#     log: "logs/cat_ratio_counts/cat_ratio_counts-{ratio}-{fractype}.log"
-#     shell: """
-#         (cat {input} > {output}) &> {log}
-#         """
-
-# def ratiosamples(wc):
-#     dd = SAMPLES if wc.status=="all" else PASSING
-#     if wc.condition=="all":
-#         return list(dd.keys())
-#     else:
-#         return [k for k,v in dd.items() if v["group"] in [wc.control, wc.condition]]
-
-# rule plot_ratios:
-#     input:
-#         numerator = "ratios/{ratio}/allsamples_{ratio}_numerator.tsv.gz",
-#         denominator = "ratios/{ratio}/allsamples_{ratio}_denominator.tsv.gz",
-#     output:
-#         violin = "ratios/{ratio}/{condition}-v-{control}/netseq-{ratio}_{status}_{condition}-v-{control}_violin.svg",
-#         ecdf = "ratios/{ratio}/{condition}-v-{control}/netseq-{ratio}_{status}_{condition}-v-{control}_ecdf.svg"
-#     params:
-#         num_size = lambda wc: config["ratios"][wc.ratio]["numerator"]["upstream"] + config["ratios"][wc.ratio]["numerator"]["dnstream"],
-#         den_size = lambda wc: config["ratios"][wc.ratio]["denominator"]["upstream"] + config["ratios"][wc.ratio]["denominator"]["dnstream"],
-#         pcount = 1e-3,
-#         samplelist = ratiosamples,
-#         ratio_label = lambda wc: config["ratios"][wc.ratio]["ratio_name"],
-#         num_label = lambda wc: config["ratios"][wc.ratio]["numerator"]["region_label"],
-#         den_label = lambda wc: config["ratios"][wc.ratio]["denominator"]["region_label"],
-#         annotation_label = lambda wc: config["ratios"][wc.ratio]["label"]
-#     script:
-#         "scripts/ratio.R"
-
-# rule direction_counts:
-#     input:
-#         annotation = lambda wc: os.path.dirname(config["directionality"][wc.annotation]["path"]) + "/stranded/" + wc.annotation + "-STRANDED" + os.path.splitext(config["directionality"][wc.annotation]["path"])[1],
-#         bw = "coverage/libsizenorm/{sample}-netseq-libsizenorm-5end-{strand}.bw"
-#     output:
-#         dtfile = temp("directionality/{annotation}/{annotation}_{sample}-{strand}.mat.gz"),
-#         matrix = temp("directionality/{annotation}/{annotation}_{sample}-{strand}.tsv"),
-#         melted = temp("directionality/{annotation}/{annotation}_{sample}-{strand}-melted.tsv.gz"),
-#     params:
-#         group = lambda wc : SAMPLES[wc.sample]["group"],
-#         upstream = lambda wc: config["directionality"][wc.annotation]["distance"] + 1 if wc.strand=="ANTISENSE" else 0,
-#         dnstream = lambda wc: config["directionality"][wc.annotation]["distance"] + 1 if wc.strand=="SENSE" else 0,
-#         refpoint = lambda wc: config["directionality"][wc.annotation]["refpoint"]
-#     threads: config["threads"]
-#     log: "logs/direction_counts/direction_counts-{annotation}-{sample}-{strand}.log"
-#     shell: """
-#         (computeMatrix reference-point -R {input.annotation} -S {input.bw} --referencePoint {params.refpoint} -out {output.dtfile} --outFileNameMatrix {output.matrix} -b {params.upstream} -a {params.dnstream} --binSize 1 --averageTypeBins mean -p {threads}) &> {log}
-#         (Rscript scripts/melt_matrix.R -i {output.matrix} -r {params.refpoint} --group {params.group} -s {wildcards.sample} -a {wildcards.strand} -b 1 -u $(echo {params.upstream}-1 | bc) -o {output.melted}) &>> {log}
-#         """
-
-# rule cat_direction_counts:
-#     input:
-#         expand("directionality/{{annotation}}/{{annotation}}_{sample}-{strand}-melted.tsv.gz", sample=SAMPLES, strand=["SENSE", "ANTISENSE"])
-#     output:
-#         "directionality/{annotation}/allsamples_{annotation}.tsv.gz"
-#     log: "logs/cat_direction_counts/cat_direction_counts-{annotation}.log"
-#     shell: """
-#         (cat {input} > {output}) &> {log}
-#         """
 

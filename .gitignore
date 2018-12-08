@@ -19,6 +19,7 @@ rulegraph.svg
 dag.svg
 Rplots.pdf
 mogrify.log
+*.*.swp
 
 config.yaml
 local_execute_cluster.sh
