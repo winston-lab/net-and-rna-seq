@@ -98,7 +98,7 @@ def statuscheck(dict1, dict2):
     return(["passing"] if dict1 == dict2 else ["all", "passing"])
 
 def conditioncheck(conditionlist):
-    return(conditionlist if len(conditionlist)==1 else conditionlist.append("all"))
+    return(conditionlist if len(conditionlist)==1 else conditionlist + ["all"])
 
 rule all:
     input:
@@ -118,7 +118,7 @@ rule all:
         expand(expand("qual_ctrl/scatter_plots/{condition}-v-{control}/{{status}}/{condition}-v-{control}_{{assay}}-spikenorm-scatterplots-{{status}}-window-{{windowsize}}.svg", zip, condition=conditioncheck(conditiongroups_si), control=conditioncheck(controlgroups_si)), status=statuscheck(SISAMPLES, SIPASSING), windowsize=config["scatterplot_binsizes"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
         #datavis
         expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups_si), control=conditioncheck(controlgroups_si)), figure=FIGURES, status=statuscheck(SISAMPLES, SIPASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
-        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups), control=conditioncheck(controlgroups), figure=FIGURES, status=statuscheck(SAMPLES, PASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
+        expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups), control=conditioncheck(controlgroups)), figure=FIGURES, status=statuscheck(SAMPLES, PASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
         expand(f"diff_exp/{{condition}}-v-{{control}}/libsizenorm/{{condition}}-v-{{control}}_{ASSAY}-libsizenorm-diffexp-results-all.tsv", zip, condition=conditiongroups, control=controlgroups),
         expand(f"diff_exp/{{condition}}-v-{{control}}/spikenorm/{{condition}}-v-{{control}}_{ASSAY}-spikenorm-diffexp-results-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
         expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]),
