@@ -28,7 +28,7 @@ select_unique_mappers:
 
 remove_PCR_duplicates:
     time : 180
-    mem : 1400
+    mem : 2000
 
 bam_separate_species:
     time : 4
