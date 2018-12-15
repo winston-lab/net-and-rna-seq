@@ -33,7 +33,10 @@ rule clean_reads:
                                     "rnaseq": { True: """-a "A{100}" -n 2""",
                                                 False:"""-g "A{100}" -n 2"""}
                                     }.get(ASSAY).get(config["sequence-from-5prime"])
-    threads: config["threads"]
+    conda:
+        "../envs/cutadapt.yaml"
+    threads:
+        config["threads"]
     shell: """
         (cutadapt --cores={threads} --adapter={params.adapter} {params.polya_command} --cut=-1 --trim-n --nextseq-trim={params.trim_qual} --length-tag='length=' --minimum-length=12 --output={output.fastq} {input}) &> {output.log}
         """
