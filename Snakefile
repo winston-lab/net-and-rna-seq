@@ -42,7 +42,7 @@ wildcard_constraints:
     species = "experimental|spikein",
     read_status = "raw|cleaned|aligned|unaligned",
     figure = "|".join(re.escape(x) for x in list(FIGURES.keys())),
-    annotation = "|".join(re.escape(x) for x in set(itertools.chain(*[FIGURES[figure]["annotations"].keys() for figure in FIGURES]))),
+    annotation = "|".join(re.escape(x) for x in set(list(itertools.chain(*[FIGURES[figure]["annotations"].keys() for figure in FIGURES])) + list(config["differential_expression"]["annotations"].keys() if config["differential_expression"]["annotations"] else []) + ["transcripts"])),
     status = "all|passing",
     counttype= "counts|sicounts",
     norm = "counts|sicounts|libsizenorm|spikenorm",
@@ -119,11 +119,10 @@ rule all:
         #datavis
         expand(expand("datavis/{{figure}}/spikenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-spikenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups_si), control=conditioncheck(controlgroups_si)), figure=FIGURES, status=statuscheck(SISAMPLES, SIPASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] and SISAMPLES and comparisons_si else [],
         expand(expand("datavis/{{figure}}/libsizenorm/{condition}-v-{control}/{{status}}/{{readtype}}/{{assay}}-{{figure}}-libsizenorm-{{status}}_{condition}-v-{control}_{{readtype}}-heatmap-bygroup-sense.svg", zip, condition=conditioncheck(conditiongroups), control=conditioncheck(controlgroups)), figure=FIGURES, status=statuscheck(SAMPLES, PASSING), readtype=["5end", "wholeread"], assay=ASSAY) if config["plot_figures"] else [],
-        expand(f"diff_exp/{{condition}}-v-{{control}}/libsizenorm/{{condition}}-v-{{control}}_{ASSAY}-libsizenorm-diffexp-results-all.tsv", zip, condition=conditiongroups, control=controlgroups),
-        expand(f"diff_exp/{{condition}}-v-{{control}}/spikenorm/{{condition}}-v-{{control}}_{ASSAY}-spikenorm-diffexp-results-all.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if SISAMPLES and comparisons_si else [],
-        expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]),
-        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{{category}}/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups_si, control=controlgroups_si), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"]) if SISAMPLES and comparisons_si else [],
+        #differential expression
+        expand(expand("diff_exp/{{annotation}}/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-{{annotation}}-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups, control=controlgroups), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"], annotation=list(config["differential_expression"]["annotations"].keys() if config["differential_expression"]["annotations"] else [])+["transcripts"]),
+        expand(expand("diff_exp/{{annotation}}/{condition}-v-{control}/spikenorm/{{category}}/{condition}-v-{control}_{{assay}}-spikenorm-{{annotation}}-diffexp-results-{{category}}-{{direction}}.tsv", zip, condition=conditiongroups_si, control=controlgroups_si), category=CATEGORIES, assay=ASSAY, direction=["all", "up", "down", "unchanged"], annotation=list(config["differential_expression"]["annotations"].keys() if config["differential_expression"]["annotations"] else [])+["transcripts"]) if SISAMPLES and comparisons_si else [],
         #differential expression summary
-        expand(expand("diff_exp/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups, control=controlgroups), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY),
-        expand(expand("diff_exp/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
+        expand(expand("diff_exp/transcripts/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups, control=controlgroups), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY),
+        expand(expand("diff_exp/transcripts/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
 

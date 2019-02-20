@@ -40,11 +40,16 @@ rule merge_called_transcripts:
     params:
         min_transcript_length = config["stringtie"]["min-transcript-length"],
         min_gap_length = config["stringtie"]["min-gap-length"]
-    conda: "../envs/stringtie.yaml"
-    log: "logs/merge_called_transcripts/merge_called_transcripts_{condition}-v-{control}_{species}.log"
+    conda:
+        "../envs/stringtie.yaml"
+    log:
+        "logs/merge_called_transcripts/merge_called_transcripts_{condition}-v-{control}_{species}.log"
     shell: """
-        (stringtie --merge {input.called} -v -m {params.min_transcript_length} -g {params.min_gap_length} -i -l stringtie | tee {output.gff} | \
-        awk 'BEGIN{{FS="\t|gene_id \\"|\\"; transcript_id";OFS="\t"}} NR>2 && $3=="transcript" {{print $1, $4-1, $5, $10, $6, $7 }}' | sort -k1,1 -k2,2n | bedtools merge -s -c 4,5,6 -o first -i stdin > {output.bed}) &> {log}
+        (stringtie --merge {input.called} -v -m {params.min_transcript_length} -g {params.min_gap_length} -i -l stringtie | \
+         tee {output.gff} | \
+         awk 'BEGIN{{FS="\t|gene_id \\"|\\"; transcript_id";OFS="\t"}} NR>2 && $3=="transcript" {{print $1, $4-1, $5, $10, $6, $7 }}' | \
+         sort -k1,1 -k2,2n | \
+         bedtools merge -s -c 4,5,6 -o first -i stdin > {output.bed}) &> {log}
         """
 
 rule annotate_merged_transcripts:
@@ -53,8 +58,11 @@ rule annotate_merged_transcripts:
         reference = lambda wc: os.path.abspath(build_annotations(config["genome"]["transcript_annotation"])) if wc.species=="experimental" else config["spike_in"]["transcript_annotation"]
     output:
         "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-annotated.bed"
-    log: "logs/annotate_merged_transcripts/annotate_merged_transcripts_{condition}-v-{control}_{species}.log"
+    log:
+        "logs/annotate_merged_transcripts/annotate_merged_transcripts_{condition}-v-{control}_{species}.log"
     shell: """
-        (bedtools intersect -s -v -a {input.called} -b {input.reference} | cat - {input.reference} | sort -k1,1 -k2,2n > {output}) &> {log}
+        (bedtools intersect -s -v -a {input.called} -b {input.reference} | \
+         cat - {input.reference} | \
+         sort -k1,1 -k2,2n > {output}) &> {log}
         """
 

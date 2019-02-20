@@ -1,75 +1,84 @@
 #!/usr/bin/env python
 
 localrules:
-    map_counts_to_transcripts,
-    combine_transcript_counts
+    map_counts_to_annotation,
+    combine_annotation_counts
 
-rule map_counts_to_transcripts:
+rule map_counts_to_annotation:
     input:
-        bed = "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-annotated.bed",
-        bg = lambda wc: f"coverage/counts/{wc.sample}_{ASSAY}-5end-counts-SENSE.bedgraph" if wc.species=="experimental" else f"coverage/sicounts/{wc.sample}_{ASSAY}-5end-sicounts-SENSE.bedgraph"
+        bed = lambda wc: "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-annotated.bed" if wc.annotation=="transcripts" else config["differential_occupancy"]["annotations"][wc.annotation],
+        bg = lambda wc: f"coverage/counts/{wc.sample}_{wc.assay}-5end-counts-SENSE.bedgraph" if wc.species=="experimental" else f"coverage/sicounts/{wc.sample}_{wc.assay}-5end-sicounts-SENSE.bedgraph"
     output:
-        temp("diff_exp/{condition}-v-{control}/{sample}_{species}-transcript-counts.tsv")
-    log: "logs/map_counts_to_transcripts/map_counts_to_transcripts_{condition}-v-{control}_{sample}-{species}.log"
+        temp("diff_exp/{annotation}/{condition}-v-{control}/{sample}_{assay}-{species}-counts-{annotation}.tsv")
+    log:
+        "logs/map_counts_to_annotation/map_counts_to_annotation_{condition}-v-{control}_{sample}-{species}-{annotation}-{assay}.log"
     shell: """
-        (bash scripts/makeStrandedBed.sh {input.bed} | LC_COLLATE=C sort -k1,1 -k2,2n | bedtools map -a stdin -b {input.bg} -c 4 -o sum | awk 'BEGIN{{FS=OFS="\t"}}{{print $4"~"$1"~"$2"~"$3, $7}}' &> {output}) &> {log}
+        (bash scripts/makeStrandedBed.sh {input.bed} | \
+         LC_COLLATE=C sort -k1,1 -k2,2n | \
+         bedtools map -a stdin -b {input.bg} -c 4 -o sum > {output}) &> {log}
         """
 
-rule combine_transcript_counts:
+rule combine_annotation_counts:
     input:
-        lambda wc : ["diff_exp/{condition}-v-{control}/".format(**wc) + x + f"_{wc.species}-transcript-counts.tsv" for x in get_samples("passing", "libsizenorm", [wc.control, wc.condition])]
+        lambda wc: ["diff_exp/{annotation}/{condition}-v-{control}/".format(**wc) + x + f"_{wc.assay}-{wc.species}-counts-{wc.annotation}.tsv" for x in get_samples("passing", "libsizenorm", [wc.control, wc.condition])]
     output:
-        "diff_exp/{condition}-v-{control}/{condition}-v-{control}_{ASSAY}-{species}-transcript-counts.tsv"
+        "diff_exp/{annotation}/{condition}-v-{control}/{condition}-v-{control}_{assay}-{species}-counts-{annotation}.tsv"
     params:
-        n = lambda wc: 2*len(get_samples("passing", "libsizenorm", [wc.control, wc.condition])),
+        n = lambda wc: 7*len(get_samples("passing", "libsizenorm", [wc.control, wc.condition])),
         names = lambda wc: "\t".join(get_samples("passing", "libsizenorm", [wc.control, wc.condition]))
-    log: "logs/combine_transcript_counts/combine_transcript_counts-{condition}-v-{control}-{species}-{ASSAY}.log"
+    log:
+        "logs/combine_annotation_counts/combine_annotation_counts-{condition}-v-{control}-{species}-{annotation}-{assay}.log"
     shell: """
-        (paste {input} | cut -f$(paste -d, <(echo "1") <(seq -s, 2 2 {params.n})) | cat <(echo -e "name\t" "{params.names}" ) - > {output}) &> {log}
+        (paste {input} | \
+         cut -f$(paste -d, <(echo "1-6") <(seq -s, 7 7 {params.n})) | \
+         cat <(echo -e "chrom\tstart\tend\tname\tscore\tstrand\t{params.names}") - > {output}) &> {log}
         """
 
 rule differential_expression:
     input:
-        expcounts = "diff_exp/{condition}-v-{control}/{condition}-v-{control}_{assay}-experimental-transcript-counts.tsv",
-        sicounts = lambda wc: [] if wc.norm=="libsizenorm" else  "diff_exp/{condition}-v-{control}/{condition}-v-{control}_{assay}-spikein-transcript-counts.tsv".format(**wc)
+        exp_counts = "diff_exp/{annotation}/{condition}-v-{control}/{condition}-v-{control}_{assay}-experimental-counts-{annotation}.tsv",
+        spike_counts = lambda wc: [] if wc.norm=="libsizenorm" else "diff_exp/{annotation}/{condition}-v-{control}/{condition}-v-{control}_{assay}-spikein-counts-{annotation}.tsv"
     output:
-        results_all = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-all.tsv",
-        results_up = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-up.tsv",
-        results_down = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-down.tsv",
-        results_unch = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-unchanged.tsv",
-        bed_all = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-all.bed",
-        bed_up = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-up.bed",
-        bed_down = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-down.bed",
-        bed_unch = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-unchanged.bed",
-        normcounts = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-counts-sizefactornorm.tsv",
-        rldcounts = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-counts-rlogtransformed.tsv",
-        qcplots = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-qc-plots.svg"
+        results_all = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-all.tsv",
+        bed_all = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-all.bed",
+        results_up = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-up.tsv",
+        bed_up = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-up.bed",
+        results_down = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-down.tsv",
+        bed_down = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-down.bed",
+        results_unchanged = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-unchanged.tsv",
+        bed_unchanged = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-unchanged.bed",
+        counts_norm = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-counts-sizefactornorm.tsv",
+        counts_rlog = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-counts-rlogtransformed.tsv",
+        qc_plots = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-qc-plots.svg"
     params:
-        samples = lambda wc : get_samples("passing", wc.norm, [wc.control, wc.condition]),
-        groups = lambda wc : [PASSING[x]["group"] for x in get_samples("passing", wc.norm, [wc.control, wc.condition])],
-        alpha = config["deseq"]["fdr"],
-        lfc = log2(config["deseq"]["fold-change-threshold"])
-    conda: "../envs/diff_exp.yaml"
+        samples = lambda wc: get_samples("passing", wc.norm, [wc.control, wc.condition]),
+        groups = lambda wc: [PASSING[x]["group"] for x in get_samples("passing", wc.norm, [wc.control, wc.condition])],
+        alpha = config["differential_expression"]["fdr"],
+        lfc = log2(config["differential_expression"]["fold-change-threshold"])
+    conda:
+        "../envs/diff_exp.yaml"
     script:
-        "../scripts/call_diffexp_transcripts.R"
+        "../scripts/differential_expression_netseq.R"
 
 rule summarise_diffexp_results:
     input:
-        total = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-results-all.tsv",
-        genic = "diff_exp/{condition}-v-{control}/{norm}/genic/{condition}-v-{control}_{assay}-{norm}-diffexp-results-genic-all.tsv",
-        antisense = "diff_exp/{condition}-v-{control}/{norm}/antisense/{condition}-v-{control}_{assay}-{norm}-diffexp-results-antisense-all.tsv",
-        convergent = "diff_exp/{condition}-v-{control}/{norm}/convergent/{condition}-v-{control}_{assay}-{norm}-diffexp-results-convergent-all.tsv",
-        divergent = "diff_exp/{condition}-v-{control}/{norm}/divergent/{condition}-v-{control}_{assay}-{norm}-diffexp-results-divergent-all.tsv",
-        intergenic = "diff_exp/{condition}-v-{control}/{norm}/intergenic/{condition}-v-{control}_{assay}-{norm}-diffexp-results-intergenic-all.tsv",
+        total = "diff_exp/transcripts/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-transcripts-diffexp-results-all.tsv",
+        genic = "diff_exp/transcripts/{condition}-v-{control}/{norm}/genic/{condition}-v-{control}_{assay}-{norm}-transcripts-diffexp-results-genic-all.tsv",
+        antisense = "diff_exp/transcripts/{condition}-v-{control}/{norm}/antisense/{condition}-v-{control}_{assay}-{norm}-transcripts-diffexp-results-antisense-all.tsv",
+        convergent = "diff_exp/transcripts/{condition}-v-{control}/{norm}/convergent/{condition}-v-{control}_{assay}-{norm}-transcripts-diffexp-results-convergent-all.tsv",
+        divergent = "diff_exp/transcripts/{condition}-v-{control}/{norm}/divergent/{condition}-v-{control}_{assay}-{norm}-transcripts-diffexp-results-divergent-all.tsv",
+        intergenic = "diff_exp/transcripts/{condition}-v-{control}/{norm}/intergenic/{condition}-v-{control}_{assay}-{norm}-transcripts-diffexp-results-intergenic-all.tsv",
     output:
-        summary_table = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-summary.tsv",
-        mosaic = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-mosaic.svg",
-        maplot = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-maplot.svg",
-        volcano = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-volcano.svg",
-        volcano_free = "diff_exp/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-volcano-freescale.svg",
+        summary_table = "diff_exp/transcripts/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-summary.tsv",
+        mosaic = "diff_exp/transcripts/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-mosaic.svg",
+        maplot = "diff_exp/transcripts/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-maplot.svg",
+        volcano = "diff_exp/transcripts/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-volcano.svg",
+        volcano_free = "diff_exp/transcripts/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-diffexp-volcano-freescale.svg",
     params:
-        lfc = config["deseq"]["fold-change-threshold"],
-        alpha = config["deseq"]["fdr"]
-    conda: "../envs/tidyverse.yaml"
-    script: "../scripts/plot_diffexp_summary.R"
+        lfc = config["differential_expression"]["fold-change-threshold"],
+        alpha = config["differential_expression"]["fdr"]
+    conda:
+        "../envs/tidyverse.yaml"
+    script:
+        "../scripts/plot_diffexp_summary.R"
 

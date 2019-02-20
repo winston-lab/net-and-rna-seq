@@ -19,12 +19,12 @@ main = function(in_all, in_genic, in_anti,
                 assay, condition, control, lfc, alpha,
                 out_ma, out_volcano, out_volcano_free, out_mosaic, out_summary_table){
     df = tibble() %>%
-        import(in_all, alpha=alpha, label_col_id="transcript_id", category="all") %>%
-        import(in_genic, alpha=alpha, label_col_id="transcript_id", category="genic") %>%
+        import(in_all, alpha=alpha, label_col_id="name", category="all") %>%
+        import(in_genic, alpha=alpha, label_col_id="name", category="genic") %>%
         import(in_anti, alpha=alpha, label_col_id="transcript_name", category="antisense") %>%
         import(in_conv, alpha=alpha, label_col_id="transcript_name", category="convergent") %>%
         import(in_div, alpha=alpha, label_col_id="transcript_name", category="divergent") %>%
-        import(in_inter, alpha=alpha, label_col_id="transcript_id", category="intergenic") %>%
+        import(in_inter, alpha=alpha, label_col_id="name", category="intergenic") %>%
         mutate(category = fct_inorder(category, ordered=TRUE))
 
     min_x = quantile(df[["mean_expr"]], .2)

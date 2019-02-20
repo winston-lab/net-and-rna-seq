@@ -55,12 +55,12 @@ plot_read_processing:
     mem: 300
 
 genome_coverage:
-    time : 5
-    mem : 75
+    time: 5
+    mem: 100
 
 normalize_genome_coverage:
-    time : 3
-    mem : 1
+    time: 3
+    mem: 1
 
 make_stranded_bedgraph:
     time: 5
@@ -71,12 +71,12 @@ bedgraph_to_bigwig:
     mem: 2
 
 compute_matrix:
-    time : 10
-    mem : 400
+    time: 10
+    mem: 400
 
 plot_figures:
-    time : 90
-    mem : 24000
+    time: 90
+    mem: 24000
 
 map_to_windows:
     time: 12
@@ -96,7 +96,7 @@ call_transcripts:
 
 differential_expression:
     time: 3
-    mem: 600
+    mem: 1200M
 
 summarise_diffexp_results:
     time: 4
