@@ -312,7 +312,8 @@ main = function(exp_table,
         filter(log10_padj > -log10(alpha))
     results_df_nonsignificant = results_df %>%
         filter(log10_padj <= -log10(alpha)) %>%
-        write_tsv(results_unchanged_out) %>%
+        write_tsv(results_unchanged_out)
+    results_df_nonsignificant %>%
         select(1:6) %>%
         write_tsv(bed_unchanged_out, col_names=FALSE)
 
