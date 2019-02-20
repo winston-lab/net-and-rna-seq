@@ -227,9 +227,11 @@ stringtie:
     min-gap-length: 20 # [INT] Minimum locus gap separation value. Reads mapped closer than this distance are merged together in the same processing bundle.
 
 # DESeq2 differential expression settings
-deseq:
+differential_expression:
     fdr: 0.1  # [FLOAT in (0,1)] false discovery rate threshold
     fold-change-threshold: 1.5  # [FLOAT] fold-change for hypothesis. Absolute fold-change, NOT log2(FC).
+    annotations:
+        # -
 
 # data visualization settings
 plot_figures: True  # [True|False] plot heatmaps and metagenes?
