@@ -6,7 +6,7 @@
 #SBATCH -c 1
 #SBATCH -e snakemake.err
 #SBATCH -o snakemake.log
-#SBATCH -J NET_RNAseq_snakemake
+#SBATCH -J NET_RNAseq-snakemake
 
 snakemake -p \
     -R `cat <(snakemake --lc --rerun-incomplete) \
