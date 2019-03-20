@@ -59,7 +59,7 @@ git clone https://github.com/winston-lab/net-and-rna-seq.git
 cd net-and-rna-seq
 
 # create the snakemake_default environment
-conda env create -v -f envs/default.yaml
+conda env create -v -f envs/snakemake_default.yaml
 
 # activate the environment
 source activate snakemake_default
