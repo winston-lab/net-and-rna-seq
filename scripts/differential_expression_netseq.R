@@ -133,7 +133,7 @@ extract_deseq_results = function(dds,
                               paste0("peak_", row_number()),
                               name),
                score = as.integer(pmin(-125*log2(padj), 1000))) %>%
-        mutate_at(vars(pvalue, padj), funs(-log10(.))) %>%
+        mutate_at(vars(pvalue, padj), ~(-log10(.))) %>%
         mutate_if(is.double, round, 3) %>%
         select(index, chrom, start, end, name, score, strand,
                log2_foldchange=log2FoldChange, lfc_SE=lfcSE,

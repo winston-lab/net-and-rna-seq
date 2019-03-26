@@ -1,5 +1,4 @@
 library(tidyverse)
-library(forcats)
 library(ggrepel)
 library(ggpmisc)
 
@@ -108,9 +107,9 @@ main = function(in_all, in_genic, in_anti,
         group_by(category) %>%
         mutate(ymax=cumsum(n), ymin=cumsum(n)-n,
                xmax=max(xmax), xmin=min(xmin)) %>%
-        mutate_at(vars(ymin, ymax), funs(./max(ymax))) %>%
+        mutate_at(vars(ymin, ymax), ~(./max(ymax))) %>%
         ungroup() %>%
-        mutate_at(vars(xmin, xmax), funs(./max(xmax))) %>%
+        mutate_at(vars(xmin, xmax), ~(./max(xmax))) %>%
         mutate(x=(xmin+xmax)/2,
                y=(ymin+ymax)/2)
 
