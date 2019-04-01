@@ -58,7 +58,7 @@ build_mean_sd_df_pre = function(dds){
         group_by(index) %>%
         summarise(mean = mean(signal),
                   sd = sd(signal)) %>%
-        mutate(rank = min_rank(desc(mean))) %>%
+        mutate(rank = min_rank(dplyr::desc(mean))) %>%
         return()
 }
 
@@ -68,7 +68,7 @@ build_mean_sd_df_post = function(counts){
         group_by(index) %>%
         summarise(mean = mean(signal),
                   sd = sd(signal)) %>%
-        mutate(rank = min_rank(desc(mean))) %>%
+        mutate(rank = min_rank(dplyr::desc(mean))) %>%
         return()
 }
 

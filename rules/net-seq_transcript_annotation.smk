@@ -12,7 +12,7 @@ rule call_transcripts:
                             },
                           False:
                             {   True: f"alignment/{wc.sample}_{ASSAY}-uniquemappers-{wc.species}.bam",
-                              False: f"alignment/{wc.sample}_{ASSAY}-uniquemappers.bam"
+                                False: f"alignment/{wc.sample}_{ASSAY}-uniquemappers.bam"
                             }
                         }.get(config["random-hexamer"]).get(len(SISAMPLES)>0)
     output:
@@ -25,8 +25,10 @@ rule call_transcripts:
         min_splicejunction_coverage = config["stringtie"]["min-splicejunction-coverage"],
         min_transcript_coverage = config["stringtie"]["min-transcript-coverage"],
         min_gap_length = config["stringtie"]["min-gap-length"]
-    log: "logs/call_transcripts/call_transcripts-{sample}-{species}-{ASSAY}.log"
-    conda: "../envs/stringtie.yaml"
+    log:
+        "logs/call_transcripts/call_transcripts-{sample}-{species}-{ASSAY}.log"
+    conda:
+        "../envs/stringtie.yaml"
     shell: """
         (stringtie {input.bam} -v -o {output.gtf} -p 1 {params.library_type} -l {wildcards.sample} -f {params.min_isoform_abundance} -m {params.min_transcript_length} -a {params.min_splice_distance} -j {params.min_splicejunction_coverage} -c {params.min_transcript_coverage} -g {params.min_gap_length} -M 0) &> {log}
         """
