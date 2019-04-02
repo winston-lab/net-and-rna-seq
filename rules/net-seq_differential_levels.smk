@@ -37,7 +37,7 @@ rule combine_annotation_counts:
 rule differential_expression:
     input:
         exp_counts = "diff_exp/{annotation}/{condition}-v-{control}/{condition}-v-{control}_{assay}-experimental-counts-{annotation}.tsv",
-        spike_counts = lambda wc: [] if wc.norm=="libsizenorm" else "diff_exp/{annotation}/{condition}-v-{control}/{condition}-v-{control}_{assay}-spikein-counts-{annotation}.tsv"
+        spike_counts = lambda wc: "diff_exp/transcripts/{condition}-v-{control}/{condition}-v-{control}_{assay}-spikein-counts-transcripts.tsv" if wc.norm=="spikenorm" else []
     output:
         results_all = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-all.tsv",
         bed_all = "diff_exp/{annotation}/{condition}-v-{control}/{norm}/{condition}-v-{control}_{assay}-{norm}-{annotation}-diffexp-results-all.bed",
