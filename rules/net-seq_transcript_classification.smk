@@ -78,7 +78,7 @@ rule classify_convergent_diffexp_transcript_annotation:
          bedtools intersect -wo -s -a stdin -b {input.conv_anno} | \
          sort -k24,24 | \
          join -1 24 -2 4 -t $'\t' -o 1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.20,2.1,2.2,2.3,2.4,2.5,2.6 - <(sort -k4,4 {input.transcript_anno}) | \
-         sort -k16,16nr | \
+         sort -k17,17nr -k16,16nr | \
          awk 'BEGIN{{FS=OFS="\t"}} $6=="+"{{$27=$23-$3}} $6=="-"{{$27=$2-$22}} {{print $0}}' | \
          cut --complement -f1-6 | \
          cat <(paste <(head -n 1 {input.results}) <(echo -e "transcript_chrom\ttranscript_start\ttranscript_end\ttranscript_name\ttranscript_score\ttranscript_strand\tsense_tss_to_conv_tss_dist")) - | \
@@ -114,7 +114,7 @@ rule classify_divergent_diffexp_transcript_annotation:
          bedtools intersect -wo -s -a stdin -b {input.div_anno} | \
          sort -k24,24 | \
          join -1 24 -2 4 -t $'\t' -o 1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.10,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.20,2.1,2.2,2.3,2.4,2.5,2.6 - <(sort -k4,4 {input.transcript_anno}) | \
-         sort -k16,16nr | \
+         sort -k17,17nr -k16,16nr | \
          awk 'BEGIN{{FS=OFS="\t"}} $6=="+"{{$27=$3-$23}} $6=="-"{{$27=$22-$2}} {{print $0}}' | \
          cut --complement -f1-6 | \
          cat <(paste <(head -n 1 {input.results}) <(echo -e "transcript_chrom\ttranscript_start\ttranscript_end\ttranscript_name\ttranscript_score\ttranscript_strand\tsense_tss_to_div_tss_dist")) - | \

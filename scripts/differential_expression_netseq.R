@@ -128,7 +128,7 @@ extract_deseq_results = function(dds,
         as_tibble() %>%
         left_join(annotations, ., by="index") %>%
         left_join(mean_counts_table, ., by="index") %>%
-        arrange(padj) %>%
+        arrange(padj, pvalue) %>%
         mutate(name = if_else(name==".",
                               paste0("peak_", row_number()),
                               name),
