@@ -50,7 +50,7 @@ plot_fastqc_summary:
     mem: 300
 
 plot_read_processing:
-    time: 1
+    time: 3
     n: 1
     mem: 300
 
