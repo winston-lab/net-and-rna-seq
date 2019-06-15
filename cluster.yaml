@@ -19,7 +19,7 @@ extract_molec_barcode:
 align:
     time : 720
     n : 8
-    mem : 500
+    mem : 800
 
 select_unique_mappers:
     time : 20
@@ -68,7 +68,7 @@ make_stranded_bedgraph:
 
 bedgraph_to_bigwig:
     time: 5
-    mem: 2
+    mem: 50
 
 compute_matrix:
     time: 15
@@ -92,7 +92,7 @@ plot_scatter_plots:
 
 call_transcripts:
     time: 2
-    mem: 50
+    mem: 150
 
 differential_expression:
     time: 6
