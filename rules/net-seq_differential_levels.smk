@@ -6,7 +6,7 @@ localrules:
 
 rule map_counts_to_annotation:
     input:
-        bed = lambda wc: "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-annotated.bed" if wc.annotation=="transcripts" else config["differential_occupancy"]["annotations"][wc.annotation],
+        bed = lambda wc: "transcript_annotation/{condition}-v-{control}/{condition}-v-{control}_{species}-merged-transcripts-annotated.bed" if wc.annotation=="transcripts" else config["differential_expression"]["annotations"][wc.annotation],
         bg = lambda wc: f"coverage/counts/{wc.sample}_{wc.assay}-5end-counts-SENSE.bedgraph" if wc.species=="experimental" else f"coverage/sicounts/{wc.sample}_{wc.assay}-5end-sicounts-SENSE.bedgraph"
     output:
         temp("diff_exp/{annotation}/{condition}-v-{control}/{sample}_{assay}-{species}-counts-{annotation}.tsv")
