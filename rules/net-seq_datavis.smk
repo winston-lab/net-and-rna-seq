@@ -2,6 +2,7 @@
 
 localrules:
     make_stranded_annotations,
+    compute_matrix,
     cat_matrices
 
 rule make_stranded_annotations:

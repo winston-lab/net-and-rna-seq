@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+localrules:
+    genome_coverage,
+    normalize_genome_coverage,
+    make_stranded_bedgraph,
+    bedgraph_to_bigwig
+
 # if sequencing happened from 3' end of RNA, (as in NET-seq)
 # the strand of the coverage is the opposite of the aligned strand
 # NOTE: '5end' coverage files generated are always the 5' end
