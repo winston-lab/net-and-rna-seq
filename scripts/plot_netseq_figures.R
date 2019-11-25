@@ -104,18 +104,21 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
             metagene = ggplot(data = df, aes(x=position, group=group,
                                              color=group, fill=group))
         } else if (groupvar=="sampleclust"){
-            metagene = ggplot(data = df %>% mutate(sampleclustid = paste(sample, cluster)),
-                              aes(x=position, group=sampleclustid,
+            metagene = ggplot(data = df,
+                              aes(x=position,
+                                  group=interaction(sample, cluster),
                                   color=factor(cluster), fill=factor(cluster)))
         } else if (groupvar=="groupclust"){
-            metagene = ggplot(data = df %>% mutate(groupclustid = paste(group, cluster)),
-                              aes(x=position, group=groupclustid,
+            metagene = ggplot(data = df,
+                              aes(x=position,
+                                  group=interaction(group, cluster),
                                   color=factor(cluster), fill=factor(cluster)))
         } else if (groupvar=="sampleanno"){
-            metagene = ggplot(data = df %>%
-                                  mutate(grouping = interaction(sample, annotation, cluster),
-                                         coloring = interaction(annotation, cluster)),
-                              aes(x=position, group=grouping, color=coloring, fill=coloring))
+            metagene = ggplot(data = df,
+                              aes(x=position,
+                                  group=interaction(sample, annotation, cluster),
+                                  color=interaction(annotation, cluster),
+                                  fill=interaction(annotation, cluster)))
         } else if (groupvar=="groupanno"){
             metagene = ggplot(data = df %>%
                                   mutate(coloring = interaction(annotation, cluster)),
@@ -342,8 +345,13 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         mutate_at(vars(group, sample, annotation, strand), ~(fct_inorder(., ordered=TRUE)))
 
     #get replicate info for sample facetting
-    repl_df = df %>% select(group, sample) %>% distinct() %>% group_by(group) %>%
-        mutate(replicate=row_number()) %>% ungroup() %>% select(-group)
+    repl_df = df %>%
+        select(group, sample) %>%
+        distinct() %>%
+        group_by(group) %>%
+        mutate(replicate=row_number()) %>%
+        ungroup() %>%
+        select(-group)
     max_reps = max(repl_df[["replicate"]])
 
     df %<>% left_join(repl_df, by="sample")
@@ -351,7 +359,9 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     n_anno = n_distinct(df[["annotation"]])
 
     #import annotation information
-    annotations = df %>% distinct(annotation) %>% pull(annotation)
+    annotations = df %>%
+        distinct(annotation) %>%
+        pull(annotation)
     bed = tibble()
     for (i in 1:n_anno){
         bed = read_tsv(anno_paths[i], col_names=c('chrom','start','end','name','score','strand')) %>%
@@ -663,7 +673,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
     ggsave(heatmap_group_antisense_out, plot=heatmap_group_antisense, width=2+9*n_groups, height=30, units="cm", limitsize=FALSE)
 
     metadf_sample = df %>%
-        group_by(group, sample, annotation, strand, position, cluster, replicate) %>%
+        group_by(group, sample,
+                 annotation, strand, position, cluster, replicate) %>%
         spread(strand, cpm)
 
     if (spread_type=="conf_int") {
@@ -673,6 +684,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                       mid_antisense = winsor.mean(antisense, trim=trim_pct),
                       sd_sense = winsor.sd(sense, trim=trim_pct),
                       sd_antisense = winsor.sd(antisense, trim=trim_pct)) %>%
+            drop_na() %>%
             mutate(low_sense = mid_sense-sd_sense,
                    high_sense = mid_sense+sd_sense,
                    low_antisense = mid_antisense-sd_antisense,
@@ -701,7 +713,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
                       high_sense = quantile(sense, probs=(1-trim_pct)),
                       mid_antisense = median(antisense),
                       low_antisense = quantile(antisense, probs=trim_pct),
-                      high_antisense = quantile(antisense, probs=(1-trim_pct)))
+                      high_antisense = quantile(antisense, probs=(1-trim_pct))) %>%
+            drop_na()
 
         metadf_group = df %>%
             group_by(group, annotation, strand, position, cluster) %>%
