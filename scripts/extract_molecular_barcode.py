@@ -21,7 +21,7 @@ def main():
     ligations_dict = Counter({"".join(nts) : 0 for nts in itertools.product(nucleotides, repeat=barcode_length)})
 
     with open(output_fastq_path, 'w') as out_fastq_file:
-        in_fastq= subprocess.Popen(['pigz', '-cdfq', input_fastq_path, stdout=subprocess.PIPE, encoding='utf-8')
+        in_fastq= subprocess.Popen(['pigz', '-cdfq', input_fastq_path], stdout=subprocess.PIPE, encoding='utf-8')
         out_fastq= subprocess.Popen(['pigz', '-fq', '-'], stdin=subprocess.PIPE, stdout=out_fastq_file, encoding='utf-8')
         header = in_fastq.stdout.readline().rstrip()
         while header != '':
