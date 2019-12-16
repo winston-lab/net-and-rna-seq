@@ -105,9 +105,9 @@ rule remove_PCR_duplicates:
 #indexing is required for separating species by samtools view
 rule index_bam:
     input:
-        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["molecular-barcode"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam"
     output:
-        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["molecular-barcode"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai"
     log : "logs/index_bam/index_bam-{sample}.log"
     shell: """
         (samtools index {input}) &> {log}
@@ -115,11 +115,11 @@ rule index_bam:
 
 rule bam_separate_species:
     input:
-        bam = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam",
-        bai = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai",
+        bam = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam" if config["molecular-barcode"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam",
+        bai = f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam.bai" if config["molecular-barcode"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam.bai",
         fasta = "{directory}/{bn}.fa".format(directory = os.path.split(build_annotations(config["genome"]["fasta"]))[0], bn=basename) if SISAMPLES else [],
     output:
-        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-{{species}}.bam" if config["random-hexamer"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers-{{species}}.bam"
+        f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-{{species}}.bam" if config["molecular-barcode"] else f"alignment/{{sample}}_{ASSAY}-uniquemappers-{{species}}.bam"
     params:
         filterprefix = lambda wc: config["spike_in"]["name"] if wc.species=="experimental" else config["genome"]["name"],
         prefix = lambda wc: config["genome"]["name"] if wc.species=="experimental" else config["spike_in"]["name"]

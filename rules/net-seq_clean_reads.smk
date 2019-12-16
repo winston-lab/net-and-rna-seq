@@ -8,10 +8,14 @@ rule extract_molec_barcode:
         fastq = temp(f"fastq/cleaned/{{sample}}_{ASSAY}-barcode-processed.fastq.gz"),
         barcodes = "qual_ctrl/molec_barcode/barcodes-{sample}.tsv",
         ligation = "qual_ctrl/molec_barcode/ligation-{sample}.tsv"
-    threads: config["threads"]
-    log: "logs/remove_molec_barcode/remove_molec_barcode-{sample}.log"
+    params:
+        barcode_length = config["barcode-length"]
+    threads:
+        config["threads"]
+    log:
+        "logs/remove_molec_barcode/remove_molec_barcode-{sample}.log"
     shell: """
-        (python scripts/extract_molecular_barcode.py {input} {output.fastq} {output.barcodes} {output.ligation}) &> {log}
+        (python scripts/extract_molecular_barcode.py {input} {output.fastq} {params.barcode_length} {output.barcodes} {output.ligation}) &> {log}
         """
 
 # trim adapter sequences from 3' end of read
@@ -21,7 +25,7 @@ rule extract_molec_barcode:
 # (sequence loss of poly-G sequences from non-Nextseq platforms should be negligible)
 rule clean_reads:
     input:
-        lambda wc: f"fastq/cleaned/{wc.sample}_{ASSAY}-barcode-processed.fastq.gz" if config["random-hexamer"] else SAMPLES[wc.sample]["fastq"]
+        lambda wc: f"fastq/cleaned/{wc.sample}_{ASSAY}-barcode-processed.fastq.gz" if config["molecular-barcode"] else SAMPLES[wc.sample]["fastq"]
     output:
         fastq = f"fastq/cleaned/{{sample}}_{ASSAY}-clean.fastq.gz",
         log = "logs/clean_reads/clean_reads-{sample}.log"

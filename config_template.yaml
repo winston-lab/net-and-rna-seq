@@ -5,8 +5,9 @@
 #
 
 assay: netseq # [netseq|rnaseq]
-random-hexamer: False  # [True|False] Does the adapter have the random hexamer molecular barcode?
 sequence-from-5prime: False  # [True|False] Did sequencing occur from the 5' end of the RNA? This should always be False for NET-seq libraries, and is usually False for RNA-seq libraries except for some legacy library preparation protocols
+molecular-barcode: False  # [True|False] Does the adapter have the random hexamer molecular barcode?
+barcode-length: 6
 
 # for individual genomes
 genome:

@@ -21,7 +21,7 @@ rule genome_coverage:
                         {   True: f"alignment/{wc.sample}_{ASSAY}-uniquemappers-" + ("experimental" if wc.counttype=="counts" else "spikein") + ".bam",
                             False: f"alignment/{wc.sample}_{ASSAY}-uniquemappers.bam"
                         }
-                    }.get(config["random-hexamer"]).get(len(SISAMPLES)>0)
+                    }.get(config["molecular-barcode"]).get(len(SISAMPLES)>0)
     output:
         "coverage/{counttype}/{sample}_{ASSAY}-{readtype}-{counttype}-{strand}.bedgraph",
     params:
@@ -56,7 +56,7 @@ rule normalize_genome_coverage:
                              False:
                                 {"libsizenorm": "alignment/{sample}_{ASSAY}-uniquemappers.bam"}
                             }
-                         }.get(config["random-hexamer"]).get(len(SISAMPLES)>0).get(wc.norm).format(**wc)
+                         }.get(config["molecular-barcode"]).get(len(SISAMPLES)>0).get(wc.norm).format(**wc)
     output:
         normalized = "coverage/{norm}/{sample}_{ASSAY}-{readtype}-{norm}-{strand}.bedgraph",
     params:

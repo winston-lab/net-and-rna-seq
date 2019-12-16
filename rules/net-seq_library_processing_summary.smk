@@ -9,7 +9,7 @@ rule aggregate_read_numbers:
     input:
         adapter = expand("logs/clean_reads/clean_reads-{sample}.log", sample=SAMPLES),
         align = expand("alignment/{sample}/align_summary.txt", sample=SAMPLES),
-        nodups = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SAMPLES)
+        nodups = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SAMPLES) if config["molecular-barcode"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SAMPLES)
     output:
         f"qual_ctrl/read_processing/{ASSAY}_read-processing-summary.tsv"
     log: "logs/aggregate_read_numbers.log"
@@ -33,9 +33,9 @@ rule plot_read_processing:
 
 rule build_spikein_counts_table:
     input:
-        total_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SISAMPLES),
-        exp_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-experimental.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-experimental.bam", sample=SISAMPLES),
-        si_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-spikein.bam", sample=SISAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-spikein.bam", sample=SISAMPLES),
+        total_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SISAMPLES) if config["molecular-barcode"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SISAMPLES),
+        exp_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-experimental.bam", sample=SISAMPLES) if config["molecular-barcode"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-experimental.bam", sample=SISAMPLES),
+        si_bam = expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates-spikein.bam", sample=SISAMPLES) if config["molecular-barcode"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers-spikein.bam", sample=SISAMPLES),
     output:
         f"qual_ctrl/spikein/{ASSAY}_spikein-counts.tsv"
     params:

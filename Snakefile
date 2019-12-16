@@ -107,7 +107,7 @@ rule all:
         #FastQC
         f'qual_ctrl/fastqc/{ASSAY}-per_base_sequence_content.svg',
         #alignment
-        expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SAMPLES) if config["random-hexamer"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SAMPLES),
+        expand(f"alignment/{{sample}}_{ASSAY}-noPCRduplicates.bam", sample=SAMPLES) if config["molecular-barcode"] else expand(f"alignment/{{sample}}_{ASSAY}-uniquemappers.bam", sample=SAMPLES),
         #coverage
         expand("coverage/{norm}/{sample}_{assay}-{readtype}-{norm}-{strand}.bw", norm=["counts","libsizenorm"], sample=SAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], assay=ASSAY),
         expand("coverage/{norm}/{sample}_{assay}-{readtype}-{norm}-{strand}.bw", norm=["sicounts","spikenorm"], sample=SISAMPLES, readtype=["5end", "wholeread"], strand=["SENSE", "ANTISENSE", "plus", "minus"], assay=ASSAY),

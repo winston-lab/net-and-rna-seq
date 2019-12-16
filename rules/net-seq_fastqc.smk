@@ -93,7 +93,7 @@ rule fastqc_aggregate:
     input:
         raw = expand("qual_ctrl/fastqc/raw/{sample}_fastqc-data-raw.txt", sample=SAMPLES),
         clean = expand("qual_ctrl/fastqc/clean/{sample}_fastqc-data-clean.txt", sample=SAMPLES),
-        aligned = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}_fastqc-data-aligned_noPCRdup.txt", sample=SAMPLES) if config["random-hexamer"] else expand("qual_ctrl/fastqc/unique_mappers/{sample}_fastqc-data-unique_mappers.txt", sample=SAMPLES),
+        aligned = expand("qual_ctrl/fastqc/aligned_noPCRdup/{sample}_fastqc-data-aligned_noPCRdup.txt", sample=SAMPLES) if config["molecular-barcode"] else expand("qual_ctrl/fastqc/unique_mappers/{sample}_fastqc-data-unique_mappers.txt", sample=SAMPLES),
         unaligned = expand("qual_ctrl/fastqc/unaligned/{sample}_fastqc-data-unaligned.txt", sample=SAMPLES),
     output:
         per_base_qual = f'qual_ctrl/fastqc/{ASSAY}-per_base_quality.tsv',
@@ -106,7 +106,7 @@ rule fastqc_aggregate:
         seq_duplication = f'qual_ctrl/fastqc/{ASSAY}-sequence_duplication_levels.tsv',
         adapter_content = f'qual_ctrl/fastqc/{ASSAY}-adapter_content.tsv',
     run:
-        tags = ["raw", "clean", "aligned_noPCRdup", "unaligned"] if config["random-hexamer"] else ["raw", "clean", "unique_mappers", "unaligned"]
+        tags = ["raw", "clean", "aligned_noPCRdup", "unaligned"] if config["molecular-barcode"] else ["raw", "clean", "unique_mappers", "unaligned"]
         shell("""rm -f {output}""")
         for fastqc_metric, out_path in output.items():
             title = fastqc_dict[fastqc_metric]["title"]

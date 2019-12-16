@@ -14,7 +14,7 @@ rule call_transcripts:
                             {   True: f"alignment/{wc.sample}_{ASSAY}-uniquemappers-{wc.species}.bam",
                                 False: f"alignment/{wc.sample}_{ASSAY}-uniquemappers.bam"
                             }
-                        }.get(config["random-hexamer"]).get(len(SISAMPLES)>0)
+                        }.get(config["molecular-barcode"]).get(len(SISAMPLES)>0)
     output:
         gtf = "transcript_annotation/{sample}_{ASSAY}-{species}-transcripts.gtf",
     params:
