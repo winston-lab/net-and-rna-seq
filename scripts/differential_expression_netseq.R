@@ -1,8 +1,7 @@
 library(tidyverse)
 library(magrittr)
 library(DESeq2)
-library(viridis)
-library(scales)
+library(ashr)
 library(gridExtra)
 
 get_countdata = function(path, samples){
@@ -75,17 +74,17 @@ build_mean_sd_df_post = function(counts){
 reverselog_trans <- function(base = exp(1)) {
     trans <- function(x) -log(x, base)
     inv <- function(x) base^(-x)
-    trans_new(paste0("reverselog-", format(base)), trans, inv,
-              log_breaks(base = base),
+    scales::trans_new(paste0("reverselog-", format(base)), trans, inv,
+              scales::log_breaks(base = base),
               domain = c(1e-100, Inf))
 }
 
 mean_sd_plot = function(df, ymax, title){
     ggplot(data = df, aes(x=rank, y=sd)) +
-        geom_hex(aes(fill=log10(..count..), color=log10(..count..)), bins=100, size=0) +
+        geom_hex(aes(fill=..count.., color=..count..), bins=100, size=0) +
         geom_smooth(color="#4292c6") +
-        scale_fill_viridis(option="inferno", name=expression(log[10](count)), guide=FALSE) +
-        scale_color_viridis(option="inferno", guide=FALSE) +
+        scale_fill_viridis_c(option="inferno", guide=FALSE) +
+        scale_color_viridis_c(option="inferno", guide=FALSE) +
         scale_x_continuous(trans = reverselog_trans(10),
                            name="rank(mean expression)",
                            expand = c(0,0)) +
@@ -119,13 +118,20 @@ extract_deseq_results = function(dds,
                                  mean_counts_table,
                                  alpha,
                                  lfc){
-    results(dds,
-            alpha=alpha,
-            lfcThreshold=lfc,
-            altHypothesis="greaterAbs") %>%
+
+    results = results(dds,
+                      alpha=alpha,
+                      lfcThreshold=lfc,
+                      altHypothesis="greaterAbs")
+
+    lfcShrink(dds,
+              res=results,
+              type="ashr")%>%
         as.data.frame() %>%
         rownames_to_column(var = "index") %>%
         as_tibble() %>%
+        mutate(stat=results[["stat"]]) %>%
+        select(c("index", names(results))) %>%
         left_join(annotations, ., by="index") %>%
         left_join(mean_counts_table, ., by="index") %>%
         arrange(padj, pvalue) %>%
@@ -202,39 +208,39 @@ plot_volcano = function(df = results_df_filtered,
         geom_vline(xintercept = c(-lfc, lfc), color="grey70", linetype="dashed") +
         stat_bin_hex(data = df,
                      geom = "point",
-                     aes(x = !!xvar, y = !!yvar, color=log10(..count..)),
+                     aes(x = !!xvar, y = !!yvar, color=..count..),
                      binwidth = c(0.01, 0.1),
                      alpha=0.8, stroke=0, size=0.7) +
         geom_hline(yintercept = -log10(alpha), color="red", linetype="dashed") +
         xlab(bquote(log[2] ~ frac(.(condition), .(control)))) +
         ylab(expression(-log[10] ~ FDR)) +
-        scale_color_viridis(option="inferno") +
+        scale_color_viridis_c(option="inferno") +
         theme_light() +
         theme(text = element_text(size=8),
               axis.title.y = element_text(angle=0, hjust=1, vjust=0.5),
               legend.position = "none")
 }
 
-main = function(exp_table,
-                spike_table,
-                samples,
-                groups,
-                norm,
-                condition,
-                control,
-                alpha,
-                lfc,
-                counts_norm_out,
-                counts_rlog_out,
-                results_all_out,
-                bed_all_out,
-                results_up_out,
-                bed_up_out,
-                results_down_out,
-                bed_down_out,
-                results_unchanged_out,
-                bed_unchanged_out,
-                qc_plots_out){
+main = function(exp_table="Spn1-IAA-v-Spn1-DMSO_rnaseq-experimental-counts-transcripts.tsv",
+                spike_table="Spn1-IAA-v-Spn1-DMSO_rnaseq-spikein-counts-transcripts.tsv",
+                samples=read_tsv(exp_table) %>% select(-c(1:6)) %>% names(),
+                groups=c(rep("non-depleted", 2), rep("depleted", 2)),
+                norm="spikenorm",
+                condition="non-depleted",
+                control="depleted",
+                alpha=0.1,
+                lfc=0,
+                counts_norm_out="counts_norm.tsv",
+                counts_rlog_out="counts_rlog.tsv",
+                results_all_out="results_all.tsv",
+                bed_all_out="all.bed",
+                results_up_out="results_up.tsv",
+                bed_up_out="up.bed",
+                results_down_out="results_down.tsv",
+                bed_down_out="down.bed",
+                results_unchanged_out="results_nonsig.tsv",
+                bed_unchanged_out="nonsig.bed",
+                qc_plots_out="qcplots.png"){
 
     annotations = read_tsv(exp_table) %>%
         select(1:6) %>%
@@ -378,4 +384,3 @@ main(exp_table = snakemake@input[["exp_counts"]],
      results_unchanged_out = snakemake@output[["results_unchanged"]],
      bed_unchanged_out = snakemake@output[["bed_unchanged"]],
      qc_plots_out = snakemake@output[["qc_plots"]])
-
