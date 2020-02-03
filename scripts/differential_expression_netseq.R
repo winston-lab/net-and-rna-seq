@@ -1,7 +1,6 @@
 library(tidyverse)
 library(magrittr)
 library(DESeq2)
-library(ashr)
 library(gridExtra)
 
 get_countdata = function(path, samples){
@@ -119,19 +118,13 @@ extract_deseq_results = function(dds,
                                  alpha,
                                  lfc){
 
-    results = results(dds,
-                      alpha=alpha,
-                      lfcThreshold=lfc,
-                      altHypothesis="greaterAbs")
-
-    lfcShrink(dds,
-              res=results,
-              type="ashr")%>%
+    results(dds,
+            alpha=alpha,
+            lfcThreshold=lfc,
+            altHypothesis="greaterAbs") %>%
         as.data.frame() %>%
         rownames_to_column(var = "index") %>%
         as_tibble() %>%
-        mutate(stat=results[["stat"]]) %>%
-        select(c("index", names(results))) %>%
         left_join(annotations, ., by="index") %>%
         left_join(mean_counts_table, ., by="index") %>%
         arrange(padj, pvalue) %>%
