@@ -6,7 +6,7 @@ fastq/*
 logs/*
 logs/cluster/*
 datavis/
-ratios/
+splicing/
 transcript_annotation/
 directionality/
 scripts/.snakemake*

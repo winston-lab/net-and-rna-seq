@@ -1,0 +1,6 @@
+name: htseq
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - htseq=0.11.2

@@ -233,6 +233,13 @@ differential_expression:
     fold-change-threshold: 1.5  # [FLOAT] fold-change for hypothesis. Absolute fold-change, NOT log2(FC).
     annotations:
         # -
+        #
+analyze_splicing: True
+splicing:
+    intron_annotation: ../genome/annotations/introns/S_cerevisiae.R64-2-1_introns_verifiedcoding_nomito_no5utr.gff
+    blacklist_annotation: ../genome/annotations/introns/S_cerevisiae.R64-2-1_introns_verifiedcoding_nomito_no5utr_blacklist.gff
+    open_intervals: False
+    min_overhang: 4
 
 # data visualization settings
 plot_figures: True  # [True|False] plot heatmaps and metagenes?

@@ -89,6 +89,7 @@ include: "rules/net-seq_datavis.smk"
 include: "rules/net-seq_differential_levels.smk"
 include: "rules/net-seq_transcript_annotation.smk"
 include: "rules/net-seq_transcript_classification.smk"
+include: "rules/rna-seq_splicing.smk"
 
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
@@ -128,4 +129,6 @@ rule all:
         #differential expression summary
         expand(expand("diff_exp/transcripts/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups, control=controlgroups), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if comparisons else [],
         expand(expand("diff_exp/transcripts/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
+        #splicing
+        expand("splicing/{sample}_intron_counts.tsv", sample=SAMPLES) if config["assay"]=="rnaseq" and config["analyze_splicing"] else []
 
