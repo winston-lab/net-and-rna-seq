@@ -101,3 +101,7 @@ differential_expression:
 summarise_diffexp_results:
     time: 4
     mem: 700
+
+compare_intron_retention:
+    time: 10
+    mem: 10000

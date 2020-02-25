@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 localrules:
+    filter_intron_alignments,
+    get_intron_counts,
+    cat_intron_counts
 
 rule filter_intron_alignments:
     input:
@@ -56,3 +59,34 @@ rule get_intron_counts:
                 --min_overhang {params.min_overhang} \
                 --output {output}) &> {log}
         """
+
+rule cat_intron_counts:
+    input:
+        expand("splicing/{sample}_intron_counts.tsv", sample=PASSING)
+    output:
+        "splicing/allsamples_intron_counts.tsv.gz"
+    log:
+        "logs/cat_intron_counts.log"
+    shell: """
+        (awk 'NR==1 || FNR !=1' {input} | \
+            pigz --stdout > {output}) &> {log}
+        """
+
+rule compare_intron_retention:
+    input:
+        data = "splicing/allsamples_intron_counts.tsv.gz"
+    output:
+        credible_intervals = "splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_credible_intervals.tsv",
+        qcplots = "splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_qcplots.svg",
+        results = "splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_results.tsv",
+        credible_intervals_plot = "splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_credible_intervals.svg",
+        volcano_plot = "splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_volcano.svg"
+    params:
+        n_trials = config["splicing"]["n_trials"],
+        credible_interval_level = config["splicing"]["credible_interval_level"],
+        fdr_cutoff = config["splicing"]["fdr_cutoff"],
+    conda:
+        "../envs/intron_retention.yaml"
+    script:
+        "../scripts/intron_retention_empirical_bayes.R"
+

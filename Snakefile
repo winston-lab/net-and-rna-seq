@@ -130,5 +130,8 @@ rule all:
         expand(expand("diff_exp/transcripts/{condition}-v-{control}/libsizenorm/{condition}-v-{control}_{{assay}}-libsizenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups, control=controlgroups), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if comparisons else [],
         expand(expand("diff_exp/transcripts/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-diffexp-{{plot}}.svg", zip, condition=conditiongroups_si, control=controlgroups_si), plot = ["mosaic", "maplot", "volcano"], assay=ASSAY) if SISAMPLES and comparisons_si else [],
         #splicing
-        expand("splicing/{sample}_intron_counts.tsv", sample=SAMPLES) if config["assay"]=="rnaseq" and config["analyze_splicing"] else []
+        expand("splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_results.tsv", zip, condition=conditiongroups, control=controlgroups) if config["assay"]=="rnaseq" and config["analyze_splicing"] and comparisons else [],
+        expand("splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_results.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if config["assay"]=="rnaseq" and config["analyze_splicing"] and comparisons_si else [],
+
+
 
