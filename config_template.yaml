@@ -240,6 +240,9 @@ splicing:
     blacklist_annotation: ../genome/annotations/introns/S_cerevisiae.R64-2-1_introns_verifiedcoding_nomito_no5utr_blacklist.gff
     open_intervals: False
     min_overhang: 4
+    n_trials: 1e5
+    credible_interval_level: 0.95
+    fdr_cutoff: 0.05
 
 # data visualization settings
 plot_figures: True  # [True|False] plot heatmaps and metagenes?
