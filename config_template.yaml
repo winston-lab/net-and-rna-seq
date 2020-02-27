@@ -234,6 +234,10 @@ differential_expression:
     annotations:
         # -
         #
+        #
+run_gene_ontology: True
+gene_ontology_mapping_file: /n/groups/winston/jc459/intragenic/genome/go_slim_mappings/sgd_go_slim_mapping_2018_2_7.tsv
+
 analyze_splicing: True
 splicing:
     intron_annotation: ../genome/annotations/introns/S_cerevisiae.R64-2-1_introns_verifiedcoding_nomito_no5utr.gff

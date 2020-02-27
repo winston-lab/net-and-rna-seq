@@ -90,6 +90,7 @@ include: "rules/net-seq_differential_levels.smk"
 include: "rules/net-seq_transcript_annotation.smk"
 include: "rules/net-seq_transcript_classification.smk"
 include: "rules/rna-seq_splicing.smk"
+include: "rules/net-seq_gene_ontology.smk"
 
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
@@ -132,6 +133,19 @@ rule all:
         #splicing
         expand("splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_results.tsv", zip, condition=conditiongroups, control=controlgroups) if config["assay"]=="rnaseq" and config["analyze_splicing"] and comparisons else [],
         expand("splicing/{condition}-v-{control}/{condition}-v-{control}_intron_retention_results.tsv", zip, condition=conditiongroups_si, control=controlgroups_si) if config["assay"]=="rnaseq" and config["analyze_splicing"] and comparisons_si else [],
-
-
+        #gene ontology
+        expand(expand("gene_ontology/{condition}-v-{control}/libsizenorm/{{category}}/{condition}-v-{control}_{{assay}}-libsizenorm-{{category}}-{{direction}}-gene-ontology-results.tsv",
+                      zip,
+                      condition=conditiongroups,
+                      control=controlgroups),
+                assay=ASSAY,
+                category=["genic", "antisense", "convergent", "divergent"],
+                direction=["up", "down", "unchanged"]) if config["run_gene_ontology"] and comparisons else [],
+        expand(expand("gene_ontology/{condition}-v-{control}/spikenorm/{{category}}/{condition}-v-{control}_{{assay}}-spikenorm-{{category}}-{{direction}}-gene-ontology-results.tsv",
+                      zip,
+                      condition=conditiongroups_si,
+                      control=controlgroups_si),
+                assay=ASSAY,
+                category=["genic", "antisense", "convergent", "divergent"],
+                direction=["up", "down", "unchanged"]) if config["run_gene_ontology"] and comparisons_si else [],
 
