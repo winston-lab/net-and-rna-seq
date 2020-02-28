@@ -43,16 +43,9 @@ main = function(universe_path="Scer_polIItranscripts-adjustedTSS.bed",
             transmute(length=end-start) %>%
             pull(length)
 
-        go_anno = read_tsv(go_anno_path,
-                           col_names = c('sys_name',
-                                         'common_name',
-                                         'go_id')) %>%
-            filter(!(is.na(go_id))) %>%
-            mutate(id = if_else(is.na(common_name),
-                                sys_name,
-                                common_name)) %>%
-            dplyr::select(id, go_id) %>%
-            filter(id %in% universe[['name']]) %>%
+        go_anno = read_tsv(go_anno_path) %>%
+            filter(!(is.na(go_category))) %>%
+            filter(feature_name %in% universe[['name']]) %>%
             as.data.frame()
 
         pwf = nullp(DEgenes = all_genes_vector,
@@ -193,7 +186,7 @@ main = function(universe_path="Scer_polIItranscripts-adjustedTSS.bed",
 main(universe_path = snakemake@input[["universe"]],
      diffexp_path = snakemake@input[["diffexp_path"]],
      go_anno_path = snakemake@input[["go_anno_path"]],
-     ttype = snakemake@wildcards[["category"]],
+     ttype = snakemake@params[["category"]],
      diffexp_direction= snakemake@params[["direction"]],
      condition= snakemake@wildcards[["condition"]],
      control= snakemake@wildcards[["control"]],

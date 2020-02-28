@@ -230,12 +230,14 @@ stringtie:
 # DESeq2 differential expression settings
 differential_expression:
     fdr: 0.1  # [FLOAT in (0,1)] false discovery rate threshold
-    fold-change-threshold: 1.5  # [FLOAT] fold-change for hypothesis. Absolute fold-change, NOT log2(FC).
+    fold-change-threshold: 1  # [FLOAT] fold-change for hypothesis. Absolute fold-change, NOT log2(FC).
     annotations:
-        # -
-        #
-        #
-run_gene_ontology: True
+        verified-coding-genes:
+            annotation: /n/groups/winston/jc459/intragenic/genome/annotations/Scer_transcripts_w_verifiedORFs.bed
+            run_gene_ontology: True
+            gene_ontology_mapping_file: /n/groups/winston/jc459/intragenic/genome/go_slim_mappings/sgd_go_slim_mapping_2018_2_7.tsv
+
+called_transcripts_gene_ontology: True
 gene_ontology_mapping_file: /n/groups/winston/jc459/intragenic/genome/go_slim_mappings/sgd_go_slim_mapping_2018_2_7.tsv
 
 analyze_splicing: True
