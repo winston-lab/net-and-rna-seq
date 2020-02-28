@@ -1,0 +1,9 @@
+name: fgsea
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - r-tidyverse=1.3.0
+    - bioconductor-fgsea=1.12.0
+    - bioconductor-go.db=3.10.0
+    - r-svglite=1.2.3
