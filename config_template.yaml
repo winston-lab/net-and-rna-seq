@@ -239,6 +239,11 @@ differential_expression:
 
 called_transcripts_gene_ontology: True
 gene_ontology_mapping_file: /n/groups/winston/jc459/intragenic/genome/go_slim_mappings/sgd_go_slim_mapping_2018_2_7.tsv
+gsea:
+    min_group_size: 15
+    max_group_size: Inf
+    n_permutations: 1e4
+    fdr_cutoff: 0.1
 
 analyze_splicing: True
 splicing:

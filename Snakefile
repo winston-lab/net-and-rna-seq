@@ -89,8 +89,9 @@ include: "rules/net-seq_datavis.smk"
 include: "rules/net-seq_differential_levels.smk"
 include: "rules/net-seq_transcript_annotation.smk"
 include: "rules/net-seq_transcript_classification.smk"
-include: "rules/rna-seq_splicing.smk"
 include: "rules/net-seq_gene_ontology.smk"
+if ASSAY=="rnaseq":
+    include: "rules/rna-seq_splicing.smk"
 
 onsuccess:
     shell("(./mogrify.sh) > mogrify.log")
@@ -177,13 +178,11 @@ rule all:
                       condition=conditiongroups,
                       control=controlgroups),
                assay=ASSAY,
-               annotation=[k for k,v in config["differential_expression"]["annotations"].items() if v["run_gene_ontology"] and v["gene_ontology_mapping_file"]]) if comparisons else [],
+               annotation=[k for k,v in config["differential_expression"]["annotations"].items() if v["run_gene_ontology"] and v["gene_ontology_mapping_file"]]) if comparisons and config["differential_expression"]["annotations"] else [],
         expand(expand("gene_ontology/{{annotation}}/{condition}-v-{control}/spikenorm/{condition}-v-{control}_{{assay}}-spikenorm-{{annotation}}-gsea-results.tsv",
                       zip,
                       condition=conditiongroups_si,
                       control=controlgroups_si),
                assay=ASSAY,
-               annotation=[k for k,v in config["differential_expression"]["annotations"].items() if v["run_gene_ontology"] and v["gene_ontology_mapping_file"]]) if comparisons_si else [],
-
-
+               annotation=[k for k,v in config["differential_expression"]["annotations"].items() if v["run_gene_ontology"] and v["gene_ontology_mapping_file"]]) if comparisons_si and config["differential_expression"]["annotations"] else [],
 
