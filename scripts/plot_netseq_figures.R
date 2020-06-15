@@ -96,7 +96,10 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         return(heatmap_base)
     }
 
-    meta = function(df, groupvar="sample", strand="both"){
+    meta = function(df, groupvar="sample", strand="both", n){
+
+        palette = if(n > 12){rep(ptol_pal()(12), ceiling(n/12))} else {ptol_pal()(n)}
+
         if (groupvar=="sample"){
             metagene = ggplot(data = df, aes(x=position, group=sample,
                                              color=group, fill=group))
@@ -163,9 +166,12 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         metagene = metagene +
             scale_y_continuous(limits = c(NA, NA), name="normalized counts",
                                labels=function(x) abs(x)) +
-            scale_color_ptol(guide=guide_legend(label.position=ifelse(groupvar %in% c("sampleanno", "groupanno"), "right", "top"),
-                                                label.hjust=ifelse(groupvar %in% c("sampleanno", "groupanno"), 0, 0.5))) +
-            scale_fill_ptol() +
+            scale_color_manual(values=palette,
+                               guide=guide_legend(label.position=ifelse(groupvar %in% c("sampleanno", "groupanno"),
+                                                                        "right", "top"),
+                                                  label.hjust=ifelse(groupvar %in% c("sampleanno", "groupanno"),
+                                                                     0, 0.5))) +
+            scale_fill_manual(values=palette) +
             ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
                             paste(assay, "signal"))) +
             theme_light() +
@@ -738,30 +744,32 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         arrange(cluster) %>%
         mutate(cluster = fct_inorder(paste("cluster", cluster), ordered=TRUE))
 
-    meta_sample_both = meta(metadf_sample, strand="both")
-    meta_sample_sense = meta(metadf_sample, strand="sense")
-    meta_sample_antisense = meta(metadf_sample, strand="antisense")
-    meta_group_both = meta(metadf_group, groupvar="group", strand="both")
-    meta_group_sense = meta(metadf_group, groupvar="group", strand="sense")
-    meta_group_antisense = meta(metadf_group, groupvar="group", strand="antisense")
-    meta_sampleclust_both = meta(metadf_sample, groupvar="sampleclust", strand="both")
-    meta_sampleclust_sense = meta(metadf_sample, groupvar="sampleclust", strand="sense")
-    meta_sampleclust_antisense = meta(metadf_sample, groupvar="sampleclust", strand="antisense")
-    meta_groupclust_both = meta(metadf_group, groupvar="groupclust", strand="both")
-    meta_groupclust_sense = meta(metadf_group, groupvar="groupclust", strand="sense")
-    meta_groupclust_antisense = meta(metadf_group, groupvar="groupclust", strand="antisense")
+    meta_sample_both = meta(metadf_sample, strand="both", n=n_groups)
+    meta_sample_sense = meta(metadf_sample, strand="sense", n=n_groups)
+    meta_sample_antisense = meta(metadf_sample, strand="antisense", n=n_groups)
+    meta_group_both = meta(metadf_group, groupvar="group", strand="both", n=n_groups)
+    meta_group_sense = meta(metadf_group, groupvar="group", strand="sense", n=n_groups)
+    meta_group_antisense = meta(metadf_group, groupvar="group", strand="antisense", n=n_groups)
+    meta_sampleclust_both = meta(metadf_sample, groupvar="sampleclust", strand="both", n=max(k))
+    meta_sampleclust_sense = meta(metadf_sample, groupvar="sampleclust", strand="sense", n=max(k))
+    meta_sampleclust_antisense = meta(metadf_sample, groupvar="sampleclust", strand="antisense", n=max(k))
+    meta_groupclust_both = meta(metadf_group, groupvar="groupclust", strand="both", n=max(k))
+    meta_groupclust_sense = meta(metadf_group, groupvar="groupclust", strand="sense", n=max(k))
+    meta_groupclust_antisense = meta(metadf_group, groupvar="groupclust", strand="antisense", n=max(k))
 
     if(max(k) > 1 | n_anno > 1){
 
-        meta_sampleanno_both = meta(metadf_sample, groupvar="sampleanno", strand="both")
-        meta_sampleanno_sense = meta(metadf_sample, groupvar="sampleanno", strand="sense")
-        meta_sampleanno_antisense = meta(metadf_sample, groupvar="sampleanno", strand="antisense")
-        meta_groupanno_both = meta(metadf_group, groupvar="groupanno", strand="both")
-        meta_groupanno_sense = meta(metadf_group, groupvar="groupanno", strand="sense")
-        meta_groupanno_antisense = meta(metadf_group, groupvar="groupanno", strand="antisense")
+        meta_sampleanno_both = meta(metadf_sample, groupvar="sampleanno", strand="both", n=n_groups)
+        meta_sampleanno_sense = meta(metadf_sample, groupvar="sampleanno", strand="sense", n=n_groups)
+        meta_sampleanno_antisense = meta(metadf_sample, groupvar="sampleanno", strand="antisense", n=n_groups)
+        meta_groupanno_both = meta(metadf_group, groupvar="groupanno", strand="both", n=n_groups)
+        meta_groupanno_sense = meta(metadf_group, groupvar="groupanno", strand="sense", n=n_groups)
+        meta_groupanno_antisense = meta(metadf_group, groupvar="groupanno", strand="antisense", n=n_groups)
     }
 
     if (n_anno==1 && max(k)==1){
+
+        palette = if(n_groups > 12){rep(ptol_pal()(12), ceiling(n_groups/12))} else {ptol_pal()(n_groups)}
 
         format_sample_meta = function(ggp, strand){
             ggp = ggp +
@@ -778,8 +786,8 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         meta_sample_antisense %<>% format_sample_meta(strand="antisense")
 
         format_sample_meta_overlay = function(df, strand){
-            ggp = meta(df, strand=strand) +
-                scale_color_ptol() +
+            ggp = meta(df, strand=strand, n=n_groups) +
+                scale_color_manual(values=palette) +
                 ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
                                 paste(assay, "signal")),
                         subtitle = annotations[1]) +
@@ -792,7 +800,7 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
 
         format_group_meta = function(ggp, strand){
             ggp = ggp +
-                scale_color_ptol() +
+                scale_color_manual(values=palette) +
                 ggtitle(if_else(strand != "both", paste(strand, assay, "signal"),
                                 paste(assay, "signal")),
                         subtitle = annotations[1]) +
@@ -902,9 +910,9 @@ main = function(in_paths, samplelist, anno_paths, ptype, upstream, dnstream, sca
         meta_sample_sense %<>% format_sample_meta()
         meta_sample_antisense %<>% format_sample_meta()
 
-        meta_sample_overlay_both = meta(metadf_sample, strand="both") + facet_grid(cluster ~ annotation)
-        meta_sample_overlay_sense = meta(metadf_sample, strand="sense") + facet_grid(cluster ~ annotation)
-        meta_sample_overlay_antisense = meta(metadf_sample, strand="antisense") + facet_grid(cluster ~ annotation)
+        meta_sample_overlay_both = meta(metadf_sample, strand="both", n=n_groups) + facet_grid(cluster ~ annotation)
+        meta_sample_overlay_sense = meta(metadf_sample, strand="sense", n=n_groups) + facet_grid(cluster ~ annotation)
+        meta_sample_overlay_antisense = meta(metadf_sample, strand="antisense", n=n_groups) + facet_grid(cluster ~ annotation)
 
         meta_group_both = meta_group_both + facet_grid(cluster ~ annotation)
         meta_group_sense = meta_group_sense + facet_grid(cluster ~ annotation)
